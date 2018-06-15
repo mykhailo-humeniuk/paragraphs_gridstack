@@ -1,0 +1,27 @@
+paragraphs_gridstack.gridstack:
+  remote: http://gridstackjs.com/
+  version: 0.3.0
+  license:
+    name: MIT
+    url: https://github.com/gridstack/gridstack.js/blob/develop/LICENSE
+    gpl-compatible: true
+  js:
+#    //code.jquery.com/ui/1.12.1/jquery-ui.min.js: { type: external, minified: true }
+    //cdn.jsdelivr.net/npm/lodash@4.17.5/lodash.min.js: { type: external, minified: true }
+    //cdnjs.cloudflare.com/ajax/libs/gridstack.js/0.4.0/gridstack.min.js: { type: external, minified: true }
+    //cdnjs.cloudflare.com/ajax/libs/gridstack.js/0.4.0/gridstack.jQueryUI.min.js: { type: external, minified: true }
+
+  css:
+    theme:
+      //cdnjs.cloudflare.com/ajax/libs/gridstack.js/0.4.0/gridstack.min.css: { type: external, minified: true }
+
+paragraphs_gridstack.widget:
+  js:
+    js/widget.min.js: {}
+  css:
+    theme:
+      css/widget.min.css: {}
+
+paragraphs_gridstack.formatter:
+  js:
+    js/formatter.min.js: {}

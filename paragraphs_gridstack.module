@@ -1,0 +1,101 @@
+<?php
+
+use Drupal\Component\Utility\Html;
+use Drupal\Core\Field\FieldConfigInterface;
+use Drupal\Core\Template\Attribute;
+use Drupal\Core\Url;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\field\FieldStorageConfigInterface;
+use Drupal\paragraphs\Entity\ParagraphsType;
+use Drupal\Core\Render\Element;
+
+function paragraphs_gridstack_theme($existing, $type, $theme, $path) {
+  return [
+    'field_gridstack_value_form' => [
+      'render element' => 'element',
+//      'file' => 'system.admin.inc',
+    ],
+  ];
+}
+
+/**
+ * Prepares variables for individual form element templates.
+ *
+ * Default template: field-multiple-value-form.html.twig.
+ *
+ * Combines multiple values into a table with drag-n-drop reordering.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - element: A render element representing the form element.
+ */
+function template_preprocess_field_gridstack_value_form(&$variables) {
+  kint($variables);
+  $element = $variables['element'];
+  $variables['multiple'] = $element['#cardinality_multiple'];
+
+  if ($variables['multiple']) {
+    $header_attributes = new Attribute(['class' => ['label']]);
+    if (!empty($element['#required'])) {
+      $header_attributes['class'][] = 'js-form-required';
+      $header_attributes['class'][] = 'form-required';
+    }
+
+//        'data' => [
+//          '#prefix' => '<h4' . $header_attributes . '>',
+//          '#markup' => $element['#title'],
+//          '#suffix' => '</h4>',
+//        ],
+
+
+    // Sort items according to '_weight' (needed when the form comes back after
+    // preview or failed validation).
+    $items = [];
+
+    $variables['button'] = [];
+    foreach (Element::children($element) as $key) {
+      if ($key === 'add_more') {
+        $variables['button'] = &$element[$key];
+      }
+      elseif ($key === 'title') {
+        $variables['title'] = &$element[$key];
+      }
+      elseif ($key === 'text') {
+        $variables['text'] = &$element[$key];
+      }
+//      elseif (in_array($key, ['title', 'text'])) {
+//
+//      }
+      else {
+        $items[] = &$element[$key];
+      }
+    }
+    usort($items, '_field_multiple_value_form_sort_helper');
+
+    // Add the items.
+    foreach ($items as $item) {
+      // Remove weight form element from item render array so it can be rendered
+      // in a separate table column.
+      $delta_element = $item['_weight'];
+      unset($item['_weight']);
+
+      $variables['grid_items'][] = [
+        '#theme' => 'container',
+        '#children' => \Drupal::service('renderer')->render($item, FALSE),
+        '#attributes' => [
+          'class' => ['grid-stack-item'],
+          'data-gs-x' => 0,
+          'data-gs-y' => 0,
+          'data-gs-width' => 6,
+          'data-gs-height' => 3
+        ],
+      ];
+    }
+  }
+  else {
+    $variables['elements'] = [];
+    foreach (Element::children($element) as $key) {
+      $variables['elements'][] = $element[$key];
+    }
+  }
+}
