@@ -30,7 +30,6 @@ function paragraphs_gridstack_theme($existing, $type, $theme, $path) {
  *   - element: A render element representing the form element.
  */
 function template_preprocess_field_gridstack_value_form(&$variables) {
-  kint($variables);
   $element = $variables['element'];
   $variables['multiple'] = $element['#cardinality_multiple'];
 

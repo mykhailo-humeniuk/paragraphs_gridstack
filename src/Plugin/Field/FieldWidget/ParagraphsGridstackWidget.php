@@ -119,7 +119,8 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget {
 
     $elements['#theme'] = 'field_gridstack_value_form';
 
-    kint($this->getSettings());
+//    kint($this->getSettings());
+    dsm($this->fieldDefinition->getUniqueIdentifier());
 
     $elements['#attached']['library'][] = 'paragraphs_gridstack/paragraphs_gridstack.gridstack';
     $elements['#attached']['library'][] = 'paragraphs_gridstack/paragraphs_gridstack.widget';
