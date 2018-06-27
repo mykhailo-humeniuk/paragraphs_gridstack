@@ -1,0 +1,4 @@
+services:
+  paragraphs_gridstack.databaseApi:
+    class: Drupal\paragraphs_gridstack\Services\DatabaseApi
+    arguments: ['@database']

@@ -1,0 +1,33 @@
+<?php
+
+/**
+ * @file
+ * Install file.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function paragraphs_gridstack_schema() {
+  $schema['gridstack'] = array(
+    'description' => 'This table contains gridstack settings',
+    'fields' => array(
+      'nid' => array(
+        'description' => 'The Nid to node',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+        'binary' => TRUE,
+      ),
+      'data' => array(
+        'description' => 'Gridstack data of an node.',
+        'type' => 'blob',
+        'not null' => TRUE,
+        'size' => 'normal',
+      ),
+    ),
+    'primary key' => array('nid'),
+  );
+  return $schema;
+}

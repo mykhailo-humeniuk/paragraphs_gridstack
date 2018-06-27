@@ -32,6 +32,7 @@ function paragraphs_gridstack_theme($existing, $type, $theme, $path) {
 function template_preprocess_field_gridstack_value_form(&$variables) {
   $element = $variables['element'];
   $variables['multiple'] = $element['#cardinality_multiple'];
+//  kint($variables);
 
   if ($variables['multiple']) {
     $header_attributes = new Attribute(['class' => ['label']]);

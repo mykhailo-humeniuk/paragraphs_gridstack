@@ -2,9 +2,13 @@
 
 namespace Drupal\paragraphs_gridstack\Plugin\Field\FieldWidget;
 
+use Drupal\Component\Utility\Random;
 use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\Core\Field\WidgetInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\paragraphs\Plugin\Field\FieldWidget\InlineParagraphsWidget;
+use Drupal\paragraphs_gridstack\Services;
+use Drupal\Component\Utility;
 
 /**
  * .
@@ -18,17 +22,36 @@ use Drupal\paragraphs\Plugin\Field\FieldWidget\InlineParagraphsWidget;
  *   }
  * )
  */
-class ParagraphsGridstackWidget extends InlineParagraphsWidget {
+class ParagraphsGridstackWidget extends InlineParagraphsWidget implements WidgetInterface {
+
+//  /**
+//   * The database connection.
+//   *
+//   * @var \Drupal\Core\Database\Connection
+//   */
+//  protected $databaseApi;
+//
+//  /**
+//   * Constructs a new CustomService object.
+//   *
+//   * @param \Drupal\Core\Database\Connection $connection
+//   *   A Database connection to use for reading and writing configuration data.
+//   *
+//   */
+//  public function __construct(Connection $connection) {
+//    $this->databaseApi = $connection;
+//  }
+
   /**
    * {@inheritdoc}
    */
   public static function defaultSettings() {
     return [
-      'alwaysShowResizeHandle' => 0,
-      'float' => 0,
-      'cellHeight' => 60,
+      'always_show_resize_handle' => FALSE,
+      'float' => FALSE,
+      'cell_height' => 60,
       'height' => 0,
-      'verticalMargin' => 20,
+      'vertical_margin' => 20,
       'width' => 12,
     ] + parent::defaultSettings();
   }
@@ -39,34 +62,27 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget {
   public function settingsForm(array $form, FormStateInterface $form_state) {
     $element = parent::settingsForm($form, $form_state);
 
-    $element['grid_settings'] = array(
-      '#type' => 'fieldset',
-      '#title' => $this->t('Grid settings'),
-      '#weight' => 9999,
-      '#collapsible' => FALSE,
-      '#collapsed' => FALSE,
-    );
-    $element['grid_settings']['alwaysShowResizeHandle'] = array(
+    $element['always_show_resize_handle'] = array(
       '#type' => 'checkbox',
       '#title' => $this->t('Always show resize handle'),
-      '#default_value' => $this->getSetting('alwaysShowResizeHandle'),
+      '#default_value' => $this->getSetting('always_show_resize_handle'),
       '#description' => $this->t('If checked the resizing handles are shown even if the user is not hovering over the widget '),
     );
-    $element['grid_settings']['float'] = array(
+    $element['float'] = array(
       '#type' => 'checkbox',
       '#title' => $this->t('Float'),
-      '#default_value' =>$this->getSetting('float'),
+      '#default_value' => $this->getSetting('float'),
       '#description' => $this->t('Enable floating widgets'),
     );
-    $element['grid_settings']['cellHeight'] = array(
+    $element['cell_height'] = array(
       '#type' => 'textfield',
       '#title' => $this->t('Cell height'),
-      '#default_value' => $this->getSetting('cellHeight'),
+      '#default_value' => $this->getSetting('cell_height'),
       '#size' => 60,
       '#maxlength' => 128,
       '#description' => $this->t('One cell height in pixels'),
     );
-    $element['grid_settings']['height'] = array(
+    $element['height'] = array(
       '#type' => 'textfield',
       '#title' => $this->t('Height'),
       '#default_value' => $this->getSetting('height'),
@@ -74,15 +90,15 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget {
       '#maxlength' => 128,
       '#description' => $this->t('Maximum rows amount. Default is 0 which means no maximum rows'),
     );
-    $element['grid_settings']['verticalMargin'] = array(
+    $element['vertical_margin'] = array(
       '#type' => 'textfield',
       '#title' => $this->t('Vertical margin'),
-      '#default_value' => $this->getSetting('verticalMargin'),
+      '#default_value' => $this->getSetting('vertical_margin'),
       '#size' => 60,
       '#maxlength' => 128,
       '#description' => $this->t('Vertical gap size in pixels'),
     );
-    $element['grid_settings']['width'] = array(
+    $element['width'] = array(
       '#type' => 'textfield',
       '#title' => $this->t('Width'),
       '#default_value' => $this->getSetting('width'),
@@ -117,15 +133,61 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget {
   public function formMultipleElements(FieldItemListInterface $items, array &$form, FormStateInterface $form_state) {
     $elements = parent::formMultipleElements($items, $form, $form_state);
 
-    $elements['#theme'] = 'field_gridstack_value_form';
+    $databaseApi = \Drupal::service('paragraphs_gridstack.databaseApi');
 
-//    kint($this->getSettings());
-    dsm($this->fieldDefinition->getUniqueIdentifier());
+    $buildInfo = $form_state->getBuildInfo();
+    $node = $buildInfo['callback_object']->getEntity();
+//    $node->id()
+//    $node->isNew()
+    dsm($node->id(), 'id');
+    dsm($node->isNew(), 'isNew');
+
+    if (!$form_state->hasValue('form_key')) {
+      $random = new Random();
+      $string = $random->name();
+      $form_state->setValue('form_key', $string);
+    }
+
+
+    // Create array with grid settings.
+    $grid_settings = [];
+    $grid_settings['always_show_resize_handle'] = $this->getSetting('always_show_resize_handle');
+    $grid_settings['float'] = $this->getSetting('float');
+    $grid_settings['cell_height'] = $this->getSetting('cell_height');
+    $grid_settings['height'] = $this->getSetting('height');
+    $grid_settings['vertical_margin'] = $this->getSetting('vertical_margin');
+    $grid_settings['width'] = $this->getSetting('width');
+
+
+//    $grid_settings = $this->getSettings();
+//    $paragraph_settings = [
+//      'title',
+//      'title_plural',
+//      'edit_mode',
+//      'add_mode',
+//      'form_display_mode',
+//      'default_paragraph_type'
+//    ];
+//    foreach ($grid_settings as $key => $value) {
+//      if (in_array($key, $paragraph_settings)) {
+//
+//      }
+//    }
+
+    // Use own theme for widget.
+    $elements['#theme'] = 'field_gridstack_value_form';
+//    $elements['#attributes']['unified_key'] = $this->fieldDefinition->getUniqueIdentifier();
+    $elements['#unified_key'] = $this->fieldDefinition->getUniqueIdentifier();
+
+//    kint($grid_settings);
+    dsm($this->fieldDefinition->getUniqueIdentifier(), 'FID');
+    dsm($form_state->getValue('form_key'), 'form_key');
 
     $elements['#attached']['library'][] = 'paragraphs_gridstack/paragraphs_gridstack.gridstack';
     $elements['#attached']['library'][] = 'paragraphs_gridstack/paragraphs_gridstack.widget';
 
+    $elements['#attached']['drupalSettings']['gridStack']['settings'] = $grid_settings;
+
     return $elements;
   }
-
 }
