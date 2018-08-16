@@ -32,7 +32,19 @@ function paragraphs_gridstack_theme($existing, $type, $theme, $path) {
 function template_preprocess_field_gridstack_value_form(&$variables) {
   $element = $variables['element'];
   $variables['multiple'] = $element['#cardinality_multiple'];
-//  kint($variables);
+  dsm($element['#unified_key'], 'from preprocess');
+
+
+
+//  $storage2 = \Drupal::state();
+//  $stated_data = $storage2->get('grid_items');
+//  dpm($stated_data, 'STATE');
+
+  $storage = \Drupal::service('user.private_tempstore')->get('paragraphs_gridstach');
+  $user_data = $storage->get('grid_items');
+  $grid_items = $user_data['items'];
+  dpm($grid_items, '$grid_items');
+
 
   if ($variables['multiple']) {
     $header_attributes = new Attribute(['class' => ['label']]);
@@ -73,7 +85,7 @@ function template_preprocess_field_gridstack_value_form(&$variables) {
     usort($items, '_field_multiple_value_form_sort_helper');
 
     // Add the items.
-    foreach ($items as $item) {
+    foreach ($items as $key => $item) {
       // Remove weight form element from item render array so it can be rendered
       // in a separate table column.
       $delta_element = $item['_weight'];
@@ -87,10 +99,13 @@ function template_preprocess_field_gridstack_value_form(&$variables) {
           'data-gs-x' => 0,
           'data-gs-y' => 0,
           'data-gs-width' => 6,
-          'data-gs-height' => 3
+          'data-gs-height' => 3,
+          'data-delta' => $key
         ],
       ];
     }
+
+    $variables['fid'] = $element['#unified_key'];
   }
   else {
     $variables['elements'] = [];

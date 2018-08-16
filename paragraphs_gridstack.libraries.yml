@@ -6,7 +6,7 @@ paragraphs_gridstack.gridstack:
     url: https://github.com/gridstack/gridstack.js/blob/develop/LICENSE
     gpl-compatible: true
   js:
-#    //code.jquery.com/ui/1.12.1/jquery-ui.min.js: { type: external, minified: true }
+    //code.jquery.com/ui/1.12.1/jquery-ui.min.js: { type: external, minified: true }
     //cdn.jsdelivr.net/npm/lodash@4.17.5/lodash.min.js: { type: external, minified: true }
     //cdnjs.cloudflare.com/ajax/libs/gridstack.js/0.4.0/gridstack.min.js: { type: external, minified: true }
     //cdnjs.cloudflare.com/ajax/libs/gridstack.js/0.4.0/gridstack.jQueryUI.min.js: { type: external, minified: true }

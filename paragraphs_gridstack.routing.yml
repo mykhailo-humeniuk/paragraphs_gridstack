@@ -1,0 +1,8 @@
+paragraphs_gridstack.update:
+  path: '/grid_update'
+  defaults:
+    _title: 'Update grid'
+    _controller: '\Drupal\paragraphs_gridstack\Controller\UpdateGrid::update'
+#  methods: [GET]
+  requirements:
+    _permission: 'access content'

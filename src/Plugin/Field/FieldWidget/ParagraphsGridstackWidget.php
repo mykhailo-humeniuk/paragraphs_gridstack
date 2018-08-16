@@ -137,16 +137,15 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
 
     $buildInfo = $form_state->getBuildInfo();
     $node = $buildInfo['callback_object']->getEntity();
-//    $node->id()
-//    $node->isNew()
-    dsm($node->id(), 'id');
-    dsm($node->isNew(), 'isNew');
+    $fid = $this->fieldDefinition->getUniqueIdentifier();
+//    dsm($node->id(), 'id');
+//    dsm($node->isNew(), 'isNew');
 
-    if (!$form_state->hasValue('form_key')) {
-      $random = new Random();
-      $string = $random->name();
-      $form_state->setValue('form_key', $string);
-    }
+//    if (!$form_state->hasValue('form_key')) {
+//      $random = new Random();
+//      $string = $random->name();
+//      $form_state->setValue('form_key', $string);
+//    }
 
 
     // Create array with grid settings.
@@ -176,17 +175,24 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
 
     // Use own theme for widget.
     $elements['#theme'] = 'field_gridstack_value_form';
-//    $elements['#attributes']['unified_key'] = $this->fieldDefinition->getUniqueIdentifier();
-    $elements['#unified_key'] = $this->fieldDefinition->getUniqueIdentifier();
+    $elements['#unified_key'] = $fid;
 
-//    kint($grid_settings);
-    dsm($this->fieldDefinition->getUniqueIdentifier(), 'FID');
-    dsm($form_state->getValue('form_key'), 'form_key');
+//    dsm($this->fieldDefinition->getUniqueIdentifier(), 'FID');
+//    dsm($this->fieldDefinition->getName(), 'FIELD NAME');
 
     $elements['#attached']['library'][] = 'paragraphs_gridstack/paragraphs_gridstack.gridstack';
     $elements['#attached']['library'][] = 'paragraphs_gridstack/paragraphs_gridstack.widget';
 
-    $elements['#attached']['drupalSettings']['gridStack']['settings'] = $grid_settings;
+    $elements['#attached']['drupalSettings']['gridStack']['settings'][$fid] = $grid_settings;
+
+//    $elements['json_field'] = [
+//      '#type' => 'textfield',
+//      '#title' => t('JSON'),
+//      '#default_value' => '',
+//      '#size' => 60,
+//      '#maxlength' => 128,
+//      '#required' => FALSE,
+//    ];
 
     return $elements;
   }

@@ -20,7 +20,7 @@
  */
 #}
 {% if multiple %}
-  <div class="js-form-item form-item">
+  <div class="js-form-item form-item form-item-grid" fid="{{ fid }}">
     {#{{ grid_items }}#}
 
 
@@ -36,7 +36,7 @@
 
 
     {% if grid_items %}
-      <div class="grid-stack width-12">
+      <div class="grid-stack width-12" fid="{{ fid }}">
         {% for item in grid_items %}
           {{ item }}
         {% endfor %}
