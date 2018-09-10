@@ -43,17 +43,14 @@ class DatabaseApi {
   public function load($nid, $reset = FALSE) {
     $cache = &drupal_static(__FUNCTION__);
     if (!isset($cache[$nid]) || $reset) {
-      $query = $this->connection->select('gridstack', 'gs')
-        ->fields('gs')
-        ->condition('nid', $nid);
-      $result = $query->execute();
+      $query = $this->connection->select('gridstack', 'gs');
+      $query->addField('gs', 'data');
+      $query->condition('nid', $nid);
+      $cache[$nid] = $query->execute()->fetchField();
 
-      if (isset($nid)) {
-        $result = $result->fetchAllAssoc('uid');
-        if (isset($result[$nid])) {
-          return $result[$nid]->serialized ? unserialize($result[$nid]->value) : $result[$nid]->value;
-        }
-        return NULL;
+      if (!empty($cache[$nid])) {
+        // Crop data stores serialized so we have to unserialize it before using.
+        $cache[$nid] = unserialize($cache[$nid]);
       }
     }
     return $cache[$nid];
@@ -65,16 +62,8 @@ class DatabaseApi {
     if (!empty($gridstack)) {
       // Delete gridstack settings from table by its nid.
       $query = $this->connection->delete('gridstack');
-      $query->condition('nid', $gridstack->nid, 'IN');
+      $query->condition('nid', $nid);
       $query->execute();
     }
-  }
-
-
-  /**
-   * Here you can pass your values as $array.
-   */
-  public function postServiceDatae($array) {
-    //Do something here to post any data.
   }
 }

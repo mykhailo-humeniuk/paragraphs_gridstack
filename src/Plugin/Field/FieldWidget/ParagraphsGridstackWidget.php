@@ -156,6 +156,7 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
     $grid_settings['height'] = $this->getSetting('height');
     $grid_settings['vertical_margin'] = $this->getSetting('vertical_margin');
     $grid_settings['width'] = $this->getSetting('width');
+    $grid_settings['field_id'] = $fid;
 
 
 //    $grid_settings = $this->getSettings();
@@ -176,6 +177,10 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
     // Use own theme for widget.
     $elements['#theme'] = 'field_gridstack_value_form';
     $elements['#unified_key'] = $fid;
+    if (!$node->isNew()) {
+      $elements['#nid'] = $node->id();
+    }
+
 
 //    dsm($this->fieldDefinition->getUniqueIdentifier(), 'FID');
 //    dsm($this->fieldDefinition->getName(), 'FIELD NAME');
@@ -183,7 +188,7 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
     $elements['#attached']['library'][] = 'paragraphs_gridstack/paragraphs_gridstack.gridstack';
     $elements['#attached']['library'][] = 'paragraphs_gridstack/paragraphs_gridstack.widget';
 
-    $elements['#attached']['drupalSettings']['gridStack']['settings'][$fid] = $grid_settings;
+
 
 //    $elements['json_field'] = [
 //      '#type' => 'textfield',
@@ -193,6 +198,25 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
 //      '#maxlength' => 128,
 //      '#required' => FALSE,
 //    ];
+
+    if (!$form_state->has('grid_loaded') && !$form_state->get('grid_loaded')) {
+      $service = \Drupal::service('paragraphs_gridstack.databaseApi');
+      $storage = \Drupal::service('tempstore.private')->get('paragraphs_gridstack');
+      $data = $service->load($node->id());
+
+      if ($storage->get('grid_items')) {
+        $storage->delete('grid_items');
+      }
+
+      if (!empty($data)) {
+        $storage = \Drupal::service('tempstore.private')->get('paragraphs_gridstack');
+        $storage->set('grid_items', $data);
+      }
+
+      $form_state->set('grid_loaded', TRUE);
+    }
+
+    $elements['#attached']['drupalSettings']['gridStack']['settings'][$fid] = $grid_settings;
 
     return $elements;
   }

@@ -15,9 +15,12 @@
    */
   function _saveParagraphPosition(jsonData) {
     console.log('jsonData', jsonData);
+
     const { baseUrl, pathPrefix } = drupalSettings.path;
     const href = `${baseUrl}${pathPrefix}grid_update`;
     const post = "grid_items=" + JSON.stringify(jsonData);
+
+    console.log('JSON.stringify(jsonData)', JSON.stringify(jsonData));
 
     // Send data to drupal side.
     $.ajax({
@@ -30,199 +33,165 @@
     });
   }
   
-  function _gatherInfo() {
-  
+  function _gatherInfo(obj) {
+    let { gridItems: items, jsonFieldData, uniqueKey } = obj;
+
+    console.log('items', items);
+    console.log('jsonFieldData', jsonFieldData);
+    console.log('uniqueKey', uniqueKey);
+    console.log(typeof(items));
+    items.forEach(item => {
+      let props = item.dataset;
+      let obj = {
+        x: props.gsX,
+        y: props.gsY,
+        width: props.gsWidth,
+        height: props.gsHeight,
+        delta: props.delta
+      };
+
+      if ((jsonFieldData.length === 0) || (props.delta === jsonFieldData.length)) {
+        jsonFieldData.items[uniqueKey].push(obj);
+      }
+      else {
+        jsonFieldData.items[uniqueKey][props.delta] = {}; //@TODO ?????
+
+        jsonFieldData.items[uniqueKey][props.delta].x = props.gsX;
+        jsonFieldData.items[uniqueKey][props.delta].y = props.gsY;
+        jsonFieldData.items[uniqueKey][props.delta].width = props.gsWidth;
+        jsonFieldData.items[uniqueKey][props.delta].height = props.gsHeight;
+      }
+
+      // Update custom element with value of item height.
+      let height = props.gsHeight;
+      let $heightContainer = $(item).find('.height-counter');
+      height = 'Height: ' + (height * 50) + 'px';
+      $heightContainer.text(height);
+    });
+    _saveParagraphPosition(jsonFieldData);
   }
 
+
+
+
+
   /**
-   * Implements grid and backbone collections on node edit page.
+   * ---------------------------------------------------------------------------------------------
+   * @type {{}}
    */
+
+
+  let options = {};
+
   Drupal.behaviors.gridstackField = {
     attach: function (context, settings) {
-      const fieldGridstack = $('.grid-stack');
       let options = {};
-
-      Array.prototype.forEach.call(fieldGridstack, gridHtml => {
-
-      });
-      
-      $('.grid-stack').gridstack({
-        cellHeight: 50,
-        verticalMargin: 0,
-        width: 12
-      });
-      
-      
+      // Gridstack init.
       if (typeof settings.gridStack !== 'undefined') {
         options = settings.gridStack.settings;
-        // fieldGridstack.gridstack(options);
         options = Object.values(options);
         options.forEach(value => {
-          $('div[fid = ' + value.field_id + ']').gridstack(value);
+          $('.grid-stack[fid = ' + value.field_id + ']').gridstack(value);
         });
-        // $('div[fid = ' + options.field_id + ']').gridstack(options);
       }
-
-      // Fill in JSON field with parameters from grid items.
-      const $gridContainer = $('.grid-stack');
-      let $gridItems = $gridContainer.find('.grid-stack-item.ui-draggable.ui-resizable');
-      let jsonFieldData = {};
-      // jsonFieldData[fid] = {};
-
-      jsonFieldData.items = [];
-      jsonFieldData.settings = options;
-      // jsonFieldData.fid = fid;
-
-      // Warm up cache on page load and add new items.
-      // @TODO need rewrite loaded logic to document ready.
-      if (!loaded) {
-        if ($gridItems.length) {
-          $gridItems.each(function (key, item) {
-            var obj = {
-              x: $(item).data('gs-x'),
-              y: $(item).data('gs-y'),
-              width: $(item).data('gs-width'),
-              height: $(item).data('gs-height'),
-              delta: $(item).data('delta')
-            };
-            jsonFieldData.items.push(obj);
-          });
-          console.log('KUUUUUUUUUUUUURWA WARMING');
-          _saveParagraphPosition(jsonFieldData);
-        }
-        loaded = true;
-      }
-      
-      // $('.field--widget-paragraphs-gridstack-widget').once('save-item', function () {
-      //   // Add custom element with value of item height.
-      //   console.log('GGGGGGGGGGGGGGGGGGGGGG');
-      //   console.log('$gridItems', $gridItems);
-      //   $gridItems.each(function (key, item) {
-      //     let height = $(item).data('gs-height');
-      //     height = 'Height: ' + (height * 50) + 'px';
-      //     // $(item).find('.grid-stack-item-content').prepend('<div class="height-counter">' + height + '</div>');
-      //     $(item).prependTo('<div class="height-counter">' + height + '</div>');
-      //   });
-      //
-      //   $(this).on('change', function(event, items) {
-      //     console.log('CHANGE KURWA');
-      //     if(items != undefined) {
-      //       console.log('IN IF KURWA');
-      //
-      //
-      //       $(items).each(function(i) {
-      //         console.log('CE THIS KURWA', this);
-      //         console.log('CE THIS KURWA2', this.el[0]);
-      //         var obj = {
-      //           x: this.x,
-      //           y: this.y,
-      //           width: this.width,
-      //           height: this.height,
-      //           delta: this.el[0].dataset.delta
-      //         };
-      //
-      //         if ((jsonFieldData.length === 0) || (items[i].el[0].dataset.delta === jsonFieldData.length)) {
-      //           jsonFieldData.items.push(obj);
-      //         }
-      //         else {
-      //           jsonFieldData.items[this.el[0].dataset.delta].x = this.x;
-      //           jsonFieldData.items[this.el[0].dataset.delta].y = this.y;
-      //           jsonFieldData.items[this.el[0].dataset.delta].width = this.width;
-      //           jsonFieldData.items[this.el[0].dataset.delta].height = this.height;
-      //         }
-      //
-      //         // Update custom element with value of item height.
-      //         var height = this.height;
-      //         var $heightContainer = $(items[i].el[0]).find('.height-counter');
-      //         height = 'Height: ' + (height * 50) + 'px';
-      //         $heightContainer.text(height);
-      //       });
-      //       _saveParagraphPosition(jsonFieldData);
-      //     }
-      //   });
-      // });
-      
-      $('.field--widget-paragraphs-gridstack-widget').once('save-item').each(function () {
-          const uniqueKey = $(this).find('.form-item-grid').attr('fid');
-          jsonFieldData.items[uniqueKey] = [];
-          console.log('KEY', uniqueKey);
-        
-          // Add custom element with value of item height.
-          $gridItems.each(function (key, item) {
-            let height = $(item).data('gs-height');
-            height = 'Height: ' + (height * 50) + 'px';
-            // $(item).find('.grid-stack-item-content').prepend('<div class="height-counter">' + height + '</div>');
-            $(item).prependTo('<div class="height-counter">' + height + '</div>');
-          });
-          
-          $(this).on('change.grid', function(event, items) {
-            if(items != undefined) {
-              $(items).each(function(i) {
-                var obj = {
-                  x: this.x,
-                  y: this.y,
-                  width: this.width,
-                  height: this.height,
-                  delta: this.el[0].dataset.delta
-                };
-        
-                if ((jsonFieldData.length === 0) || (items[i].el[0].dataset.delta === jsonFieldData.length)) {
-                  jsonFieldData.items.push(obj);
-                }
-                else {
-                  console.log('jsonFieldData', jsonFieldData);
-                  jsonFieldData.items[uniqueKey][this.el[0].dataset.delta] = {}; //@TODO ?????
-                  
-                  jsonFieldData.items[uniqueKey][this.el[0].dataset.delta].x = this.x;
-                  jsonFieldData.items[uniqueKey][this.el[0].dataset.delta].y = this.y;
-                  jsonFieldData.items[uniqueKey][this.el[0].dataset.delta].width = this.width;
-                  jsonFieldData.items[uniqueKey][this.el[0].dataset.delta].height = this.height;
-                }
-        
-                // Update custom element with value of item height.
-                var height = this.height;
-                var $heightContainer = $(items[i].el[0]).find('.height-counter');
-                height = 'Height: ' + (height * 50) + 'px';
-                $heightContainer.text(height);
-              });
-              _saveParagraphPosition(jsonFieldData);
-            }
-          });
-      });
     }
   };
+
+
+  const fieldGridstack = document.querySelectorAll('.grid-stack');
+
+  let jsonFieldData = {};
+  // jsonFieldData[fid] = {};
+
+  // Fill in JSON field with parameters from grid items.
+  if (fieldGridstack.length) {
+    let gridItems = fieldGridstack.querySelectorAll('.grid-stack-item.ui-draggable.ui-resizable');
+
+    // Warm up cache on page load and add new items.
+    // @TODO need rewrite loaded logic to document ready.
+    if (!loaded) {
+      if (gridItems.length) {
+        gridItems.each(item => {
+          var obj = {
+            x: $(item).data('gs-x'),
+            y: $(item).data('gs-y'),
+            width: $(item).data('gs-width'),
+            height: $(item).data('gs-height'),
+            delta: $(item).data('delta')
+        };
+          jsonFieldData.items.push(obj);
+        });
+        _saveParagraphPosition(jsonFieldData);
+      }
+      loaded = true;
+    }
+  }
+
+  // Create obj structure.
+  jsonFieldData.items = {};
+  jsonFieldData.settings = options;
+  // jsonFieldData.fid = fid;
+
+
+  // выбираем целевой элемент
+  const gridFields = document.querySelectorAll('.field--widget-paragraphs-gridstack-widget');
+
+  // создаём экземпляр MutationObserver
+  // Insert/remove dom elements event listener.
+  let observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+      let gridItems = mutation.target.querySelectorAll('.grid-stack-item.ui-draggable.ui-resizable');
+
+      const uniqueKey = mutation.target.querySelectorAll('.form-item-grid')[0].getAttribute('fid');
+      jsonFieldData.items[uniqueKey] = {};
+
+      _gatherInfo({gridItems, jsonFieldData, uniqueKey});
+
+      // DO SOMETHING ON INSERT/DELETE.
+      gridItems.forEach(itemBu => {
+        // DO SOMETHING ON INSERT/DELETE.
+      });
+    });
+  });
+
+  // конфигурация нашего observer:
+  const config = { attributes: true, childList: true, characterData: true };
+
+  // передаём в качестве аргументов целевой элемент и его конфигурацию
+  gridFields.forEach(gridHtml => {
+    const uniqueKey = gridHtml.querySelectorAll('.form-item-grid')[0].getAttribute('fid');
+    let gridItems = gridHtml.querySelectorAll('.grid-stack-item.ui-draggable.ui-resizable');
+    jsonFieldData.items[uniqueKey] = [];
+
+    // Observe insert/remove events.
+    observer.observe(gridHtml, config);
+
+    // Add custom element with value of item height.
+    if (gridItems.length) {
+      gridItems.forEach(item => {
+        console.log('ADD CUSTOM HEIGHT ITEM', item);
+        let height = $(item).data('gs-height');
+        height = 'Height: ' + (height * 50) + 'px';
+        $(item).prependTo('<div class="height-counter">' + height + '</div>');
+      });
+    }
+
+    // Other change events.
+    gridHtml.onchange = item => {
+      let gridItems = item.target.querySelectorAll('.grid-stack-item.ui-draggable.ui-resizable');
+
+      _gatherInfo({gridItems, jsonFieldData, uniqueKey});
+
+      gridItems.forEach(itemBu => {
+        // DO THOMETHING ON CHANGE
+      });
+    };
+  });
+
+
+
+
 })(jQuery, Drupal, drupalSettings);
 
 
 
-// выбираем целевой элемент
-let targets = document.querySelectorAll('.field--widget-paragraphs-gridstack-widget');
-// console.log('target', target);
-
-// создаём экземпляр MutationObserver
-let observer = new MutationObserver(function(mutations) {
-  mutations.forEach(function(mutation) {
-    let gridItemsR = mutation.target.querySelectorAll('.grid-stack-item.ui-draggable.ui-resizable');
-    gridItemsR.forEach(itemBu => {
-      console.log(itemBu.dataset);
-    });
-  });
-});
-
-// конфигурация нашего observer:
-const config = { attributes: true, childList: true, characterData: true };
-
-// передаём в качестве аргументов целевой элемент и его конфигурацию
-targets.forEach(gridHtml => {
-  observer.observe(gridHtml, config);
-});
-
-
-
-const gridFields = document.querySelectorAll('.field--widget-paragraphs-gridstack-widget');
-console.log(gridFields);
-
-// .....
-gridFields.forEach(field => {
-
-});

@@ -13,7 +13,12 @@ function paragraphs_gridstack_theme($existing, $type, $theme, $path) {
   return [
     'field_gridstack_value_form' => [
       'render element' => 'element',
-//      'file' => 'system.admin.inc',
+    ],
+    'paragraphs_gridstack' => [
+      'render element' => 'elements',
+    ],
+    'paragraphs_gridstack_field' => [
+      'render element' => 'elements',
     ],
   ];
 }
@@ -29,23 +34,21 @@ function paragraphs_gridstack_theme($existing, $type, $theme, $path) {
  *   An associative array containing:
  *   - element: A render element representing the form element.
  */
-function template_preprocess_field_gridstack_value_form(&$variables) {
+function template_preprocess_field_gridstack_value_form(array &$variables) {
   $element = $variables['element'];
   $variables['multiple'] = $element['#cardinality_multiple'];
-  dsm($element['#unified_key'], 'from preprocess');
+  $unified_key = $element['#unified_key'];
 
-
+  $storage = \Drupal::service('tempstore.private')->get('paragraphs_gridstack');
+  $user_data = $storage->get('grid_items');
 
 //  $storage2 = \Drupal::state();
-//  $stated_data = $storage2->get('grid_items');
-//  dpm($stated_data, 'STATE');
+//  $user_data = $storage2->get('grid_items');
 
-  $storage = \Drupal::service('user.private_tempstore')->get('paragraphs_gridstach');
-  $user_data = $storage->get('grid_items');
-  $grid_items = $user_data['items'];
-  dpm($grid_items, '$grid_items');
+  $grid_items = $user_data['items'][$unified_key];
 
 
+  // .
   if ($variables['multiple']) {
     $header_attributes = new Attribute(['class' => ['label']]);
     if (!empty($element['#required'])) {
@@ -85,32 +88,180 @@ function template_preprocess_field_gridstack_value_form(&$variables) {
     usort($items, '_field_multiple_value_form_sort_helper');
 
     // Add the items.
-    foreach ($items as $key => $item) {
-      // Remove weight form element from item render array so it can be rendered
-      // in a separate table column.
-      $delta_element = $item['_weight'];
-      unset($item['_weight']);
+//    if (!empty($grid_items)) {
+      // Add the items.
+      foreach ($items as $key => $item) {
+        $params = !empty($params = $grid_items[$key]) ? $params = $grid_items[$key] : NULL;
 
-      $variables['grid_items'][] = [
-        '#theme' => 'container',
-        '#children' => \Drupal::service('renderer')->render($item, FALSE),
-        '#attributes' => [
-          'class' => ['grid-stack-item'],
-          'data-gs-x' => 0,
-          'data-gs-y' => 0,
-          'data-gs-width' => 6,
-          'data-gs-height' => 3,
-          'data-delta' => $key
-        ],
-      ];
-    }
+        if (empty($grid_items[$key])) {
+          $temporary_json_data = $grid_items;
+          usort($temporary_json_data, function($a, $b) {
+            return $a['y'] == $b['y'] ? 0 : $a['y'] < $b['y'] ? 1 : -1;
+          });
+          $max_y = $temporary_json_data[0]['y'] + $temporary_json_data[0]['height'];
+        }
+//        \Drupal::logger('paragraphs_gridstack')->notice($_POST['grid_items']);
 
-    $variables['fid'] = $element['#unified_key'];
+        // Remove weight form element from item render array so it can be rendered
+        // in a separate table column.
+        $delta_element = $item['_weight'];
+        unset($item['_weight']);
+
+        // .
+        $children = [
+          '#theme' => 'container',
+          '#prefix' => '<div class="grid-stack-item-content">',
+          '#suffix' => '</div>',
+          '#children' => Drupal::service('renderer')->renderPlain($item),
+        ];
+
+        $variables['grid_items'][] = [
+          '#theme' => 'container',
+          '#children' => $children,
+          '#attributes' => [
+            'class' => ['grid-stack-item'],
+            'data-gs-x' => (!empty($params['x'])) ? $params['x'] : 0,
+            'data-gs-y' => (!empty($params['y'])) ? $params['y'] : (isset($max_y) ? $max_y : 0),
+            'data-gs-width' => (!empty($params['width'])) ? $params['width'] : 6,
+            'data-gs-height' => (!empty($params['height'])) ? $params['height'] : 3,
+            'data-delta' => $key
+          ],
+        ];
+      }
+//    }
+
+    $variables['fid'] = $unified_key;
   }
   else {
     $variables['elements'] = [];
     foreach (Element::children($element) as $key) {
       $variables['elements'][] = $element[$key];
+    }
+  }
+}
+
+function template_preprocess_paragraphs_gridstack(&$variables) {
+//  kint($variables);
+  $variables['view_mode'] = $variables['elements']['#view_mode'];
+  $variables['paragraph'] = $variables['elements']['#paragraph'];
+
+  // Helpful $content variable for templates.
+  $variables += array('content' => array());
+  foreach (Element::children($variables['elements']) as $key) {
+    $variables['content'][$key] = $variables['elements'][$key];
+  }
+
+  $variables['classes'] = ['buuu', 'bar'];
+
+  $paragraph_type = $variables['elements']['#paragraph']->getParagraphType();
+  foreach ($paragraph_type->getEnabledBehaviorPlugins() as $plugin_id => $plugin_value) {
+//    kint($plugin_value);
+    $plugin_value->preprocess($variables);
+  }
+
+}
+
+
+function template_preprocess_paragraphs_gridstack_field(&$variables) {
+//  kint($variables);
+  $variables['view_mode'] = $variables['elements']['#view_mode'];
+  $variables['paragraph'] = $variables['elements']['#paragraph'];
+
+  // Helpful $content variable for templates.
+  $variables += array('content' => array());
+  foreach (Element::children($variables['elements']) as $key) {
+    $variables['content'][$key] = $variables['elements'][$key];
+  }
+
+  $variables['classes'] = ['buuu', 'bar'];
+
+  $paragraph_type = $variables['elements']['#paragraph']->getParagraphType();
+  foreach ($paragraph_type->getEnabledBehaviorPlugins() as $plugin_id => $plugin_value) {
+//    kint($plugin_value);
+    $plugin_value->preprocess($variables);
+  }
+
+}
+
+
+function paragraphs_gridstack_node_insert(Drupal\Core\Entity\EntityInterface $entity) {
+  if (_paragraphs_gridstack_ckeck_field($entity)) {
+    $storage = \Drupal::service('tempstore.private')->get('paragraphs_gridstack');
+    $user_data = $storage->get('grid_items');
+    $grid_items = $user_data['items'];
+
+    $storage->delete('grid_items');
+
+    $service = \Drupal::service('paragraphs_gridstack.databaseApi');
+    $service->save($entity->id(), $grid_items);
+  }
+}
+
+function paragraphs_gridstack_node_update(Drupal\Core\Entity\EntityInterface $entity) {
+  if (_paragraphs_gridstack_ckeck_field($entity)) {
+    $storage = \Drupal::service('tempstore.private')->get('paragraphs_gridstack');
+    $user_data = $storage->get('grid_items');
+    dpm($user_data, 'RAW DATA');
+    $grid_items = $user_data['items'];
+    dpm($grid_items, '$grid_items');
+    $storage->delete('grid_items');
+
+    $service = \Drupal::service('paragraphs_gridstack.databaseApi');
+    $service->save($entity->id(), $grid_items);
+  }
+}
+
+function paragraphs_gridstack_node_delete(Drupal\Core\Entity\EntityInterface $entity) {
+  if (_paragraphs_gridstack_ckeck_field($entity)) {
+    $service = \Drupal::service('paragraphs_gridstack.databaseApi');
+    $service->delete($entity->id());
+  }
+}
+
+
+function _paragraphs_gridstack_ckeck_field(Drupal\Core\Entity\EntityInterface $entity) {
+  $field_existiong = FALSE;
+
+  // Find fields which are referencing classy_paragraphs.
+  $class_fields = [];
+
+  $fields = $entity->getFieldDefinitions();
+  foreach($fields as $field) {
+    if ($field instanceof FieldConfigInterface) {
+      /** @var Drupal\field\Entity\FieldStorageConfig $field_storage */
+      $field_storage = $field->getFieldStorageDefinition();
+
+      $target = $field_storage->getSetting('target_type');
+      if ($target == 'paragraph') {
+        $class_fields[] = $field;
+        $field_existiong = TRUE;
+      }
+    }
+  }
+
+  return $field_existiong;
+
+  foreach($class_fields as $class_field) {
+    dpm($class_field, '$class_field');
+    $field_name = $class_field->get('field_name');
+    if (!$entity->get($field_name)->isEmpty()) {
+
+      $field = $entity->get($field_name);
+      $classes = $field->referencedEntities();
+
+//      foreach($classes as $class) {
+//        $raw_classes = $class->getClasses();
+//        $array_classes = explode("\r\n", $raw_classes);
+//        if (!empty($array_classes)) {
+//          if(!empty($build['#attributes']['class'])) {
+//            $current_classes = $build['#attributes']['class'];
+//            $build['#attributes']['class'] = array_merge($current_classes, $array_classes);
+//          }
+//          else {
+//            $build['#attributes']['class'] = $array_classes;
+//          }
+//        }
+//      }
     }
   }
 }
