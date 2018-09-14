@@ -14,13 +14,11 @@
    * Add data to json field and send to drupal callback.
    */
   function _saveParagraphPosition(jsonData) {
-    console.log('jsonData', jsonData);
-
     const { baseUrl, pathPrefix } = drupalSettings.path;
     const href = `${baseUrl}${pathPrefix}grid_update`;
     const post = "grid_items=" + JSON.stringify(jsonData);
 
-    console.log('JSON.stringify(jsonData)', JSON.stringify(jsonData));
+    // console.log('JSON.stringify(jsonData)', JSON.stringify(jsonData));
 
     // Send data to drupal side.
     $.ajax({
@@ -31,16 +29,13 @@
       success: function (data) {
       }
     });
+    $('#edit-field-json-wrapper textarea').val(JSON.stringify(jsonData));
   }
   
   function _gatherInfo(obj) {
     let { gridItems: items, jsonFieldData, uniqueKey } = obj;
 
-    console.log('items', items);
-    console.log('jsonFieldData', jsonFieldData);
-    console.log('uniqueKey', uniqueKey);
-    console.log(typeof(items));
-    items.forEach(item => {
+    items.forEach((item) => {
       let props = item.dataset;
       let obj = {
         x: props.gsX,
@@ -68,12 +63,11 @@
       height = 'Height: ' + (height * 50) + 'px';
       $heightContainer.text(height);
     });
+
+    jsonFieldData.settings[uniqueKey] = settings.gridStack.settings[uniqueKey];
+
     _saveParagraphPosition(jsonFieldData);
   }
-
-
-
-
 
   /**
    * ---------------------------------------------------------------------------------------------
@@ -90,41 +84,34 @@
       if (typeof settings.gridStack !== 'undefined') {
         options = settings.gridStack.settings;
         options = Object.values(options);
-        options.forEach(value => {
+        options.forEach((value) => {
           $('.grid-stack[fid = ' + value.field_id + ']').gridstack(value);
         });
       }
     }
   };
 
+  $(document).ready(() => {
+    let data = $('#edit-field-json-wrapper textarea').val();
+    if (data.length) {
+      data = JSON.parse(data);
+      let settingsKeys = Object.keys(data.settings);
+      let settingsValues = Object.values(data.settings);
+
+      settingsValues.forEach((v, i) => {
+        $('.grid-stack[fid = ' + settingsKeys[i] + ']').gridstack(v);
+      });
+    }
+  });
+
 
   const fieldGridstack = document.querySelectorAll('.grid-stack');
 
   let jsonFieldData = {};
-  // jsonFieldData[fid] = {};
 
   // Fill in JSON field with parameters from grid items.
   if (fieldGridstack.length) {
-    let gridItems = fieldGridstack.querySelectorAll('.grid-stack-item.ui-draggable.ui-resizable');
 
-    // Warm up cache on page load and add new items.
-    // @TODO need rewrite loaded logic to document ready.
-    if (!loaded) {
-      if (gridItems.length) {
-        gridItems.each(item => {
-          var obj = {
-            x: $(item).data('gs-x'),
-            y: $(item).data('gs-y'),
-            width: $(item).data('gs-width'),
-            height: $(item).data('gs-height'),
-            delta: $(item).data('delta')
-        };
-          jsonFieldData.items.push(obj);
-        });
-        _saveParagraphPosition(jsonFieldData);
-      }
-      loaded = true;
-    }
   }
 
   // Create obj structure.
@@ -139,7 +126,7 @@
   // создаём экземпляр MutationObserver
   // Insert/remove dom elements event listener.
   let observer = new MutationObserver(function(mutations) {
-    mutations.forEach(function(mutation) {
+    mutations.forEach((mutation) => {
       let gridItems = mutation.target.querySelectorAll('.grid-stack-item.ui-draggable.ui-resizable');
 
       const uniqueKey = mutation.target.querySelectorAll('.form-item-grid')[0].getAttribute('fid');
@@ -148,7 +135,7 @@
       _gatherInfo({gridItems, jsonFieldData, uniqueKey});
 
       // DO SOMETHING ON INSERT/DELETE.
-      gridItems.forEach(itemBu => {
+      gridItems.forEach((itemBu) => {
         // DO SOMETHING ON INSERT/DELETE.
       });
     });
@@ -158,7 +145,7 @@
   const config = { attributes: true, childList: true, characterData: true };
 
   // передаём в качестве аргументов целевой элемент и его конфигурацию
-  gridFields.forEach(gridHtml => {
+  gridFields.forEach((gridHtml) => {
     const uniqueKey = gridHtml.querySelectorAll('.form-item-grid')[0].getAttribute('fid');
     let gridItems = gridHtml.querySelectorAll('.grid-stack-item.ui-draggable.ui-resizable');
     jsonFieldData.items[uniqueKey] = [];
@@ -168,7 +155,7 @@
 
     // Add custom element with value of item height.
     if (gridItems.length) {
-      gridItems.forEach(item => {
+      gridItems.forEach((item) => {
         console.log('ADD CUSTOM HEIGHT ITEM', item);
         let height = $(item).data('gs-height');
         height = 'Height: ' + (height * 50) + 'px';
@@ -182,7 +169,7 @@
 
       _gatherInfo({gridItems, jsonFieldData, uniqueKey});
 
-      gridItems.forEach(itemBu => {
+      gridItems.forEach((itemBu) => {
         // DO THOMETHING ON CHANGE
       });
     };

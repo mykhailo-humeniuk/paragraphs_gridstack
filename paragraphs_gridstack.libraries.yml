@@ -21,7 +21,11 @@ paragraphs_gridstack.widget:
   css:
     theme:
       css/widget.min.css: {}
+      css/col-12.min.css: {}
 
 paragraphs_gridstack.formatter:
-  js:
-    js/formatter.min.js: {}
+#  js:
+#    js/formatter.min.js: {}
+  css:
+    theme:
+      css/col-12.min.css: {}

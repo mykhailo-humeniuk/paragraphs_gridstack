@@ -132,8 +132,11 @@ class ParagraphsGridstackFormatter extends EntityReferenceFormatterBase {
     }
     $elements = parent::view($items, $langcode);
 
-//    kint($elements);
+//    kint($items->getFieldDefinition()->getUniqueIdentifier());
 
+    $elements['#theme'] = 'paragraphs_gridstack_field';
+
+//    kint($elements);
 
     return $elements;
   }
@@ -144,36 +147,40 @@ class ParagraphsGridstackFormatter extends EntityReferenceFormatterBase {
    */
   public function viewElements(FieldItemListInterface $items, $langcode) {
     $elements = [];
+//    $elements = parent::viewElements($items, $langcode);
     foreach ($this->getEntitiesToView($items, $langcode) as $delta => $entity) {
       if ($entity->id()) {
         $summary = $entity->getSummary();
         $elements[$delta] = [
           '#type' => 'container',
           '#attributes' => [
-            'class' => ['paragraph-formatter', 'buuuuu1']
+            'class' => ['paragraph-formatter']
           ]
         ];
         $elements[$delta]['info'] = [
           '#type' => 'container',
           '#attributes' => [
-            'class' => ['paragraph-info', 'buuuuu2']
+            'class' => ['paragraph-info']
           ]
         ];
         $elements[$delta]['info'] += $entity->getIcons();
         $elements[$delta]['summary'] = [
           '#type' => 'container',
           '#attributes' => [
-            'class' => ['paragraph-summary', 'buuuuu3']
+            'class' => ['paragraph-summary']
           ]
         ];
         $elements[$delta]['summary']['description'] = [
           '#markup' => $summary,
-          '#prefix' => '<div class="paragraphs-collapsed-description BUUUUUU4">',
+          '#prefix' => '<div class="paragraphs-collapsed-description">',
           '#suffix' => '</div>',
         ];
       }
     }
-    $elements['#attached']['library'][] = 'paragraphs/drupal.paragraphs.formatter';
+
+
+
+    $elements['#attached']['library'][] = 'paragraphs_gridstack/paragraphs_gridstack.formatter';
     return $elements;
   }
 

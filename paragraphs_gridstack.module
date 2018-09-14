@@ -1,6 +1,7 @@
 <?php
 
 use Drupal\Component\Utility\Html;
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Field\FieldConfigInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Url;
@@ -35,9 +36,14 @@ function paragraphs_gridstack_theme($existing, $type, $theme, $path) {
  *   - element: A render element representing the form element.
  */
 function template_preprocess_field_gridstack_value_form(array &$variables) {
+//  kint($variables);
   $element = $variables['element'];
   $variables['multiple'] = $element['#cardinality_multiple'];
   $unified_key = $element['#unified_key'];
+
+//  if () {
+//
+//  }
 
   $storage = \Drupal::service('tempstore.private')->get('paragraphs_gridstack');
   $user_data = $storage->get('grid_items');
@@ -88,10 +94,12 @@ function template_preprocess_field_gridstack_value_form(array &$variables) {
     usort($items, '_field_multiple_value_form_sort_helper');
 
     // Add the items.
-//    if (!empty($grid_items)) {
+    if (!empty($items)) {
       // Add the items.
       foreach ($items as $key => $item) {
         $params = !empty($params = $grid_items[$key]) ? $params = $grid_items[$key] : NULL;
+
+//        kint($grid_items[$key]);
 
         if (empty($grid_items[$key])) {
           $temporary_json_data = $grid_items;
@@ -128,7 +136,7 @@ function template_preprocess_field_gridstack_value_form(array &$variables) {
           ],
         ];
       }
-//    }
+    }
 
     $variables['fid'] = $unified_key;
   }
@@ -141,7 +149,6 @@ function template_preprocess_field_gridstack_value_form(array &$variables) {
 }
 
 function template_preprocess_paragraphs_gridstack(&$variables) {
-//  kint($variables);
   $variables['view_mode'] = $variables['elements']['#view_mode'];
   $variables['paragraph'] = $variables['elements']['#paragraph'];
 
@@ -163,61 +170,92 @@ function template_preprocess_paragraphs_gridstack(&$variables) {
 
 
 function template_preprocess_paragraphs_gridstack_field(&$variables) {
-//  kint($variables);
-  $variables['view_mode'] = $variables['elements']['#view_mode'];
-  $variables['paragraph'] = $variables['elements']['#paragraph'];
+  $element = $variables['elements'];
+  $node = $element['#object'];
+  $field = $element['#items'];
+  $data = [];
 
-  // Helpful $content variable for templates.
-  $variables += array('content' => array());
-  foreach (Element::children($variables['elements']) as $key) {
-    $variables['content'][$key] = $variables['elements'][$key];
+  if (!empty($node) && !empty($field)) {
+    $data = $node->get('field_json')->getValue();
+    $data = json_decode($data[0]['value'], true);
+    $fuid = $field->getFieldDefinition()->getUniqueIdentifier();
   }
 
-  $variables['classes'] = ['buuu', 'bar'];
 
-  $paragraph_type = $variables['elements']['#paragraph']->getParagraphType();
-  foreach ($paragraph_type->getEnabledBehaviorPlugins() as $plugin_id => $plugin_value) {
-//    kint($plugin_value);
-    $plugin_value->preprocess($variables);
+
+  // Creating variables for the template.
+  $variables['entity_type'] = $element['#entity_type'];
+  $variables['field_name'] = $element['#field_name'];
+  $variables['field_type'] = $element['#field_type'];
+  $variables['label_display'] = $element['#label_display'];
+
+  $variables['label_hidden'] = ($element['#label_display'] == 'hidden');
+  // Always set the field label - allow themes to decide whether to display it.
+  // In addition the label should be rendered but hidden to support screen
+  // readers.
+  $variables['label'] = $element['#title'];
+
+  $variables['multiple'] = $element['#is_multiple'];
+
+  static $default_attributes;
+  if (!isset($default_attributes)) {
+    $default_attributes = new Attribute();
   }
 
+  // Merge attributes when a single-value field has a hidden label.
+  if ($element['#label_display'] == 'hidden' && !$variables['multiple'] && !empty($element['#items'][0]->_attributes)) {
+    $variables['attributes'] = NestedArray::mergeDeep($variables['attributes'], (array) $element['#items'][0]->_attributes);
+  }
+
+  // We want other preprocess functions and the theme implementation to have
+  // fast access to the field item render arrays. The item render array keys
+  // (deltas) should always be numerically indexed starting from 0, and looping
+  // on those keys is faster than calling Element::children() or looping on all
+  // keys within $element, since that requires traversal of all element
+  // properties.
+  $variables['items'] = [];
+  $delta = 0;
+  while (!empty($element[$delta])) {
+    $variables['items'][$delta]['content'] = $element[$delta];
+
+    // Modules (e.g., rdf.module) can add field item attributes (to
+    // $item->_attributes) within hook_entity_prepare_view(). Some field
+    // formatters move those attributes into some nested formatter-specific
+    // element in order have them rendered on the desired HTML element (e.g., on
+    // the <a> element of a field item being rendered as a link). Other field
+    // formatters leave them within $element['#items'][$delta]['_attributes'] to
+    // be rendered on the item wrappers provided by field.html.twig.
+    $variables['items'][$delta]['attributes'] = !empty($element['#items'][$delta]->_attributes) ? new Attribute($element['#items'][$delta]->_attributes) : clone($default_attributes);
+
+//    kint($variables['items'][$delta]['attributes']);
+
+    // .
+    if (!empty($data['items'][$fuid])) {
+      $grid_item = $data['items'][$fuid][$delta];
+      $variables['items'][$delta]['attributes']['data-gs-x'] =  $grid_item['x'];
+      $variables['items'][$delta]['attributes']['data-gs-y'] =  $grid_item['y'];
+      $variables['items'][$delta]['attributes']['data-gs-width'] =  $grid_item['width'];
+      $variables['items'][$delta]['attributes']['data-gs-height'] =  $grid_item['height'];
+    }
+
+    $delta++;
+  }
 }
 
 
 function paragraphs_gridstack_node_insert(Drupal\Core\Entity\EntityInterface $entity) {
   if (_paragraphs_gridstack_ckeck_field($entity)) {
     $storage = \Drupal::service('tempstore.private')->get('paragraphs_gridstack');
-    $user_data = $storage->get('grid_items');
-    $grid_items = $user_data['items'];
-
     $storage->delete('grid_items');
-
-    $service = \Drupal::service('paragraphs_gridstack.databaseApi');
-    $service->save($entity->id(), $grid_items);
   }
 }
 
 function paragraphs_gridstack_node_update(Drupal\Core\Entity\EntityInterface $entity) {
   if (_paragraphs_gridstack_ckeck_field($entity)) {
     $storage = \Drupal::service('tempstore.private')->get('paragraphs_gridstack');
-    $user_data = $storage->get('grid_items');
-    dpm($user_data, 'RAW DATA');
-    $grid_items = $user_data['items'];
-    dpm($grid_items, '$grid_items');
     $storage->delete('grid_items');
-
-    $service = \Drupal::service('paragraphs_gridstack.databaseApi');
-    $service->save($entity->id(), $grid_items);
   }
 }
-
-function paragraphs_gridstack_node_delete(Drupal\Core\Entity\EntityInterface $entity) {
-  if (_paragraphs_gridstack_ckeck_field($entity)) {
-    $service = \Drupal::service('paragraphs_gridstack.databaseApi');
-    $service->delete($entity->id());
-  }
-}
-
 
 function _paragraphs_gridstack_ckeck_field(Drupal\Core\Entity\EntityInterface $entity) {
   $field_existiong = FALSE;
@@ -240,28 +278,4 @@ function _paragraphs_gridstack_ckeck_field(Drupal\Core\Entity\EntityInterface $e
   }
 
   return $field_existiong;
-
-  foreach($class_fields as $class_field) {
-    dpm($class_field, '$class_field');
-    $field_name = $class_field->get('field_name');
-    if (!$entity->get($field_name)->isEmpty()) {
-
-      $field = $entity->get($field_name);
-      $classes = $field->referencedEntities();
-
-//      foreach($classes as $class) {
-//        $raw_classes = $class->getClasses();
-//        $array_classes = explode("\r\n", $raw_classes);
-//        if (!empty($array_classes)) {
-//          if(!empty($build['#attributes']['class'])) {
-//            $current_classes = $build['#attributes']['class'];
-//            $build['#attributes']['class'] = array_merge($current_classes, $array_classes);
-//          }
-//          else {
-//            $build['#attributes']['class'] = $array_classes;
-//          }
-//        }
-//      }
-    }
-  }
 }

@@ -45,4 +45,4 @@
     }
   };
 
-})(jQuery, Drupal, Drupal.settings);
+})(jQuery, Drupal, drupalSettings);
