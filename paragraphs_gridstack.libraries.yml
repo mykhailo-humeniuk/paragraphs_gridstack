@@ -24,8 +24,9 @@ paragraphs_gridstack.widget:
       css/col-12.min.css: {}
 
 paragraphs_gridstack.formatter:
-#  js:
-#    js/formatter.min.js: {}
+  js:
+    js/formatter.min.js: {}
   css:
     theme:
       css/col-12.min.css: {}
+      //cdnjs.cloudflare.com/ajax/libs/gridstack.js/0.4.0/gridstack.min.css: { type: external, minified: true }
