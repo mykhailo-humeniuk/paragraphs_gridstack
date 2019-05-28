@@ -1,0 +1,22 @@
+field.widget.settings.paragraphs_gridstack_widget:
+  type: mapping
+  label: 'Gridstack widget settings'
+  mapping:
+    always_show_resize_handle:
+      type: boolean
+      label: 'Always show resize handle'
+    float:
+      type: boolean
+      label: 'Float'
+    cell_height:
+      type: integer
+      label: 'Cell height'
+    height:
+      type: integer
+      label: 'Height'
+    vertical_margin:
+      type: integer
+      label: 'Vertical margin'
+    width:
+      type: integer
+      label: 'Width'

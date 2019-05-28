@@ -1,0 +1,278 @@
+<?php
+
+use Drupal\Component\Utility\Html;
+use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Field\FieldConfigInterface;
+use Drupal\Core\Template\Attribute;
+use Drupal\Core\Url;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\field\FieldStorageConfigInterface;
+use Drupal\paragraphs\Entity\ParagraphsType;
+use Drupal\Core\Render\Element;
+
+function paragraphs_gridstack_theme($existing, $type, $theme, $path) {
+  return [
+    'field_gridstack_value_form' => [
+      'render element' => 'element',
+    ],
+    'paragraphs_gridstack_field' => [
+      'render element' => 'elements',
+    ],
+  ];
+}
+
+/**
+ * Prepares variables for individual form element templates.
+ *
+ * Default template: field-multiple-value-form.html.twig.
+ *
+ * Combines multiple values into a table with drag-n-drop reordering.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - element: A render element representing the form element.
+ */
+function template_preprocess_field_gridstack_value_form(array &$variables) {
+  $element = $variables['element'];
+  $variables['multiple'] = $element['#cardinality_multiple'];
+  $unified_key = $element['#unified_key'];
+
+  $storage = \Drupal::service('tempstore.private')->get('paragraphs_gridstack');
+  $user_data = $storage->get('grid_items');
+
+  $grid_items = $user_data['items'][$unified_key];
+  $variables['columns'] = $user_data['settings'][$unified_key]['width'];
+
+  // .
+  if ($variables['multiple']) {
+    $header_attributes = new Attribute(['class' => ['label']]);
+    if (!empty($element['#required'])) {
+      $header_attributes['class'][] = 'js-form-required';
+      $header_attributes['class'][] = 'form-required';
+    }
+
+//        'data' => [
+//          '#prefix' => '<h4' . $header_attributes . '>',
+//          '#markup' => $element['#title'],
+//          '#suffix' => '</h4>',
+//        ],
+
+
+    // Sort items according to '_weight' (needed when the form comes back after
+    // preview or failed validation).
+    $items = [];
+
+    $variables['button'] = [];
+    foreach (Element::children($element) as $key) {
+      if ($key === 'add_more') {
+        $variables['button'] = &$element[$key];
+      }
+      elseif ($key === 'title') {
+        $variables['title'] = &$element[$key];
+      }
+      elseif ($key === 'text') {
+        $variables['text'] = &$element[$key];
+      }
+//      elseif (in_array($key, ['title', 'text'])) {
+//
+//      }
+      else {
+        $items[] = &$element[$key];
+      }
+    }
+    usort($items, '_field_multiple_value_form_sort_helper');
+
+    // Add the items.
+    if (!empty($items)) {
+      // Add the items.
+      foreach ($items as $key => $item) {
+        $params = !empty($params = $grid_items[$key]) ? $params = $grid_items[$key] : NULL;
+
+//        kint($grid_items[$key]);
+
+        if (empty($grid_items[$key])) {
+          $temporary_json_data = $grid_items;
+          usort($temporary_json_data, function($a, $b) {
+            return $a['y'] == $b['y'] ? 0 : $a['y'] < $b['y'] ? 1 : -1;
+          });
+          $max_y = $temporary_json_data[0]['y'] + $temporary_json_data[0]['height'];
+        }
+
+        // Remove weight form element from item render array so it can be rendered
+        // in a separate table column.
+        $delta_element = $item['_weight'];
+        unset($item['_weight']);
+
+        // .
+        $children = [
+          '#theme' => 'container',
+          '#prefix' => '<div class="grid-stack-item-content">',
+          '#suffix' => '</div>',
+          '#children' => Drupal::service('renderer')->render($item),
+        ];
+
+        $variables['grid_items'][] = [
+          '#theme' => 'container',
+          '#children' => $children,
+          '#attributes' => [
+            'class' => ['grid-stack-item'],
+            'data-gs-x' => (!empty($params['x'])) ? $params['x'] : 0,
+            'data-gs-y' => (!empty($params['y'])) ? $params['y'] : (isset($max_y) ? $max_y : 0),
+            'data-gs-width' => (!empty($params['width'])) ? $params['width'] : 6,
+            'data-gs-height' => (!empty($params['height'])) ? $params['height'] : 3,
+            'data-delta' => $key
+          ],
+        ];
+      }
+    }
+
+    $variables['fid'] = $unified_key;
+
+    if (!empty($element['#nid'])) {
+      $variables['#attached']['drupalSettings']['gridStack']['settings'] = $user_data['settings'];
+    }
+  }
+  else {
+    $variables['elements'] = [];
+    foreach (Element::children($element) as $key) {
+      $variables['elements'][] = $element[$key];
+    }
+  }
+}
+
+function template_preprocess_paragraphs_gridstack_field(&$variables) {
+  $element = $variables['elements'];
+  $node = $element['#object'];
+  $field = $element['#items'];
+  $data = [];
+
+  if (!empty($node) && !empty($field)) {
+    $data = json_decode($node->get('field_paragraphs_gridstack_json')->getString(), true);
+    $fuid = $field->getFieldDefinition()->getUniqueIdentifier();
+  }
+
+  $variables['columns'] = $data['settings'][$fuid]['width'];
+
+  // Creating variables for the template.
+  $variables['entity_type'] = $element['#entity_type'];
+  $variables['field_name'] = $element['#field_name'];
+  $variables['field_type'] = $element['#field_type'];
+  $variables['label_display'] = $element['#label_display'];
+
+  $variables['label_hidden'] = ($element['#label_display'] == 'hidden');
+  // Always set the field label - allow themes to decide whether to display it.
+  // In addition the label should be rendered but hidden to support screen
+  // readers.
+  $variables['label'] = $element['#title'];
+
+  $variables['multiple'] = $element['#is_multiple'];
+
+  static $default_attributes;
+  if (!isset($default_attributes)) {
+    $default_attributes = new Attribute();
+  }
+
+  // Merge attributes when a single-value field has a hidden label.
+  if ($element['#label_display'] == 'hidden' && !$variables['multiple'] && !empty($element['#items'][0]->_attributes)) {
+    $variables['attributes'] = NestedArray::mergeDeep($variables['attributes'], (array) $element['#items'][0]->_attributes);
+  }
+
+  // We want other preprocess functions and the theme implementation to have
+  // fast access to the field item render arrays. The item render array keys
+  // (deltas) should always be numerically indexed starting from 0, and looping
+  // on those keys is faster than calling Element::children() or looping on all
+  // keys within $element, since that requires traversal of all element
+  // properties.
+  $variables['items'] = [];
+  $delta = 0;
+  while (!empty($element[$delta])) {
+    $variables['items'][$delta]['content'] = $element[$delta];
+
+    // Modules (e.g., rdf.module) can add field item attributes (to
+    // $item->_attributes) within hook_entity_prepare_view(). Some field
+    // formatters move those attributes into some nested formatter-specific
+    // element in order have them rendered on the desired HTML element (e.g., on
+    // the <a> element of a field item being rendered as a link). Other field
+    // formatters leave them within $element['#items'][$delta]['_attributes'] to
+    // be rendered on the item wrappers provided by field.html.twig.
+    $variables['items'][$delta]['attributes'] = !empty($element['#items'][$delta]->_attributes) ? new Attribute($element['#items'][$delta]->_attributes) : clone($default_attributes);
+
+    // .
+    if (!empty($data['items'][$fuid])) {
+      $grid_item = $data['items'][$fuid][$delta];
+      $variables['items'][$delta]['attributes']['data-gs-x'] = $grid_item['x'];
+      $variables['items'][$delta]['attributes']['data-gs-y'] = $grid_item['y'];
+      $variables['items'][$delta]['attributes']['data-gs-width'] = $grid_item['width'];
+      $variables['items'][$delta]['attributes']['data-gs-height'] = $grid_item['height'];
+    }
+
+    $delta++;
+  }
+
+  // Sorting items according to Y position.
+  usort($variables['items'], function($a, $b) {
+    $a_y = $a['attributes']->offsetGet('data-gs-y');
+    $b_y = $b['attributes']->offsetGet('data-gs-y');
+    $a_x = $a['attributes']->offsetGet('data-gs-x');
+    $b_x = $b['attributes']->offsetGet('data-gs-x');
+    if ($a_y == $b_y) {
+      return $a_x > $b_x ? 1 : -1;
+    }
+    return $a_y > $b_y ? 1 : -1;
+  });
+}
+
+/**
+ * Implements hook_node_insert()
+ *
+ * @param \Drupal\Core\Entity\EntityInterface $entity
+ */
+function paragraphs_gridstack_node_insert(Drupal\Core\Entity\EntityInterface $entity) {
+  // Check if we have user session for preventing errors during content migration.
+  if (\Drupal::currentUser()->isAuthenticated()) {
+    // Check if is it paragraph's type field.
+    if (_paragraphs_gridstack_check_field($entity)) {
+      $storage = \Drupal::service('tempstore.private')->get('paragraphs_gridstack');
+      $storage->delete('grid_items');
+    }
+  }
+}
+
+/**
+ * Implements hook_node_update()
+ *
+ * @param \Drupal\Core\Entity\EntityInterface $entity
+ */
+function paragraphs_gridstack_node_update(Drupal\Core\Entity\EntityInterface $entity) {
+  // Check if we have user session for preventing errors during content migration.
+  if (\Drupal::currentUser()->isAuthenticated()) {
+    // Check if is it paragraph's type field.
+    if (_paragraphs_gridstack_check_field($entity)) {
+      $storage = \Drupal::service('tempstore.private')->get('paragraphs_gridstack');
+      $storage->delete('grid_items');
+    }
+  }
+}
+
+function _paragraphs_gridstack_check_field(Drupal\Core\Entity\EntityInterface $entity) {
+  $field_existiong = FALSE;
+
+  // Find fields which are referencing classy_paragraphs.
+  $class_fields = [];
+
+  $fields = $entity->getFieldDefinitions();
+  foreach($fields as $field) {
+    if ($field instanceof FieldConfigInterface) {
+      /** @var Drupal\field\Entity\FieldStorageConfig $field_storage */
+      $field_storage = $field->getFieldStorageDefinition();
+
+      $target = $field_storage->getSetting('target_type');
+      if ($target == 'paragraph') {
+        $class_fields[] = $field;
+        $field_existiong = TRUE;
+      }
+    }
+  }
+
+  return $field_existiong;
+}
