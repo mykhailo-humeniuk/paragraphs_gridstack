@@ -54,21 +54,23 @@
 
 {% if label_hidden %}
     {% if multiple %}
-        <div{{ attributes.addClass(classes, 'field__items') }}>
+        <div class="grid-stack paragraphs-items-field-grid width-{{ columns }}">
             {% for item in items %}
                 <div{{ item.attributes.addClass('grid-stack-item') }}>{{ item.content }}</div>
             {% endfor %}
         </div>
     {% else %}
-        {% for item in items %}
-            <div{{ attributes.addClass(classes, 'grid-stack-item') }}>{{ item.content }}</div>
-        {% endfor %}
+        <div class="grid-stack paragraphs-items-field-grid width-{{ columns }}">
+            {% for item in items %}
+                <div{{ attributes.addClass(classes, 'grid-stack-item') }}>{{ item.content }}</div>
+            {% endfor %}
+        </div>
     {% endif %}
 {% else %}
     <div{{ attributes.addClass(classes) }}>
         <div{{ title_attributes.addClass(title_classes) }}>{{ label }}</div>
         {% if multiple %}
-        <div class="grid-stack width-12">
+        <div class="grid-stack paragraphs-items-field-grid width-{{ columns }}">
             {% endif %}
             {% for item in items %}
                 <div{{ item.attributes.addClass('grid-stack-item') }}>{{ item.content }}</div>

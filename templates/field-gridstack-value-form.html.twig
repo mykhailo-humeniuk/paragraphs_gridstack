@@ -36,7 +36,7 @@
 
 
     {% if grid_items %}
-      <div class="grid-stack width-12" fid="{{ fid }}">
+      <div class="grid-stack width-{{ columns }}" fid="{{ fid }}">
         {% for item in grid_items %}
           {{ item }}
         {% endfor %}

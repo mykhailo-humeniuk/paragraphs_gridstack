@@ -5,6 +5,7 @@ paragraphs_gridstack.gridstack:
     name: MIT
     url: https://github.com/gridstack/gridstack.js/blob/develop/LICENSE
     gpl-compatible: true
+
   js:
     //code.jquery.com/ui/1.12.1/jquery-ui.min.js: { type: external, minified: true }
     //cdn.jsdelivr.net/npm/lodash@4.17.5/lodash.min.js: { type: external, minified: true }
@@ -21,12 +22,39 @@ paragraphs_gridstack.widget:
   css:
     theme:
       css/widget.min.css: {}
-      css/col-12.min.css: {}
+  dependencies:
+  - paragraphs_gridstack/paragraphs_gridstack.cols
+  - core/jquery
+  - core/jquery.once
+  - core/drupal
+  - core/drupalSettings
 
 paragraphs_gridstack.formatter:
   js:
     js/formatter.min.js: {}
   css:
     theme:
-      css/col-12.min.css: {}
       //cdnjs.cloudflare.com/ajax/libs/gridstack.js/0.4.0/gridstack.min.css: { type: external, minified: true }
+      css/formatter.min.css: {}
+  dependencies:
+  - paragraphs_gridstack/paragraphs_gridstack.cols
+  - core/jquery
+  - core/jquery.once
+  - core/drupal
+  - core/drupalSettings
+
+paragraphs_gridstack.cols:
+  css:
+    theme:
+      css/col-1.min.css: {}
+      css/col-2.min.css: {}
+      css/col-3.min.css: {}
+      css/col-4.min.css: {}
+      css/col-5.min.css: {}
+      css/col-6.min.css: {}
+      css/col-7.min.css: {}
+      css/col-8.min.css: {}
+      css/col-9.min.css: {}
+      css/col-10.min.css: {}
+      css/col-11.min.css: {}
+      css/col-12.min.css: {}

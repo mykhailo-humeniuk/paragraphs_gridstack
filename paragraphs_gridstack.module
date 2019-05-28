@@ -15,9 +15,6 @@ function paragraphs_gridstack_theme($existing, $type, $theme, $path) {
     'field_gridstack_value_form' => [
       'render element' => 'element',
     ],
-    'paragraphs_gridstack' => [
-      'render element' => 'elements',
-    ],
     'paragraphs_gridstack_field' => [
       'render element' => 'elements',
     ],
@@ -36,23 +33,15 @@ function paragraphs_gridstack_theme($existing, $type, $theme, $path) {
  *   - element: A render element representing the form element.
  */
 function template_preprocess_field_gridstack_value_form(array &$variables) {
-//  kint($variables);
   $element = $variables['element'];
   $variables['multiple'] = $element['#cardinality_multiple'];
   $unified_key = $element['#unified_key'];
 
-//  if () {
-//
-//  }
-
   $storage = \Drupal::service('tempstore.private')->get('paragraphs_gridstack');
   $user_data = $storage->get('grid_items');
 
-//  $storage2 = \Drupal::state();
-//  $user_data = $storage2->get('grid_items');
-
   $grid_items = $user_data['items'][$unified_key];
-
+  $variables['columns'] = $user_data['settings'][$unified_key]['width'];
 
   // .
   if ($variables['multiple']) {
@@ -108,7 +97,6 @@ function template_preprocess_field_gridstack_value_form(array &$variables) {
           });
           $max_y = $temporary_json_data[0]['y'] + $temporary_json_data[0]['height'];
         }
-//        \Drupal::logger('paragraphs_gridstack')->notice($_POST['grid_items']);
 
         // Remove weight form element from item render array so it can be rendered
         // in a separate table column.
@@ -120,7 +108,7 @@ function template_preprocess_field_gridstack_value_form(array &$variables) {
           '#theme' => 'container',
           '#prefix' => '<div class="grid-stack-item-content">',
           '#suffix' => '</div>',
-          '#children' => Drupal::service('renderer')->renderPlain($item),
+          '#children' => Drupal::service('renderer')->render($item),
         ];
 
         $variables['grid_items'][] = [
@@ -139,6 +127,10 @@ function template_preprocess_field_gridstack_value_form(array &$variables) {
     }
 
     $variables['fid'] = $unified_key;
+
+    if (!empty($element['#nid'])) {
+      $variables['#attached']['drupalSettings']['gridStack']['settings'] = $user_data['settings'];
+    }
   }
   else {
     $variables['elements'] = [];
@@ -148,27 +140,6 @@ function template_preprocess_field_gridstack_value_form(array &$variables) {
   }
 }
 
-function template_preprocess_paragraphs_gridstack(&$variables) {
-  $variables['view_mode'] = $variables['elements']['#view_mode'];
-  $variables['paragraph'] = $variables['elements']['#paragraph'];
-
-  // Helpful $content variable for templates.
-  $variables += array('content' => array());
-  foreach (Element::children($variables['elements']) as $key) {
-    $variables['content'][$key] = $variables['elements'][$key];
-  }
-
-  $variables['classes'] = ['buuu', 'bar'];
-
-  $paragraph_type = $variables['elements']['#paragraph']->getParagraphType();
-  foreach ($paragraph_type->getEnabledBehaviorPlugins() as $plugin_id => $plugin_value) {
-//    kint($plugin_value);
-    $plugin_value->preprocess($variables);
-  }
-
-}
-
-
 function template_preprocess_paragraphs_gridstack_field(&$variables) {
   $element = $variables['elements'];
   $node = $element['#object'];
@@ -176,12 +147,11 @@ function template_preprocess_paragraphs_gridstack_field(&$variables) {
   $data = [];
 
   if (!empty($node) && !empty($field)) {
-    $data = $node->get('field_json')->getValue();
-    $data = json_decode($data[0]['value'], true);
+    $data = json_decode($node->get('field_paragraphs_gridstack_json')->getString(), true);
     $fuid = $field->getFieldDefinition()->getUniqueIdentifier();
   }
 
-
+  $variables['columns'] = $data['settings'][$fuid]['width'];
 
   // Creating variables for the template.
   $variables['entity_type'] = $element['#entity_type'];
@@ -227,37 +197,64 @@ function template_preprocess_paragraphs_gridstack_field(&$variables) {
     // be rendered on the item wrappers provided by field.html.twig.
     $variables['items'][$delta]['attributes'] = !empty($element['#items'][$delta]->_attributes) ? new Attribute($element['#items'][$delta]->_attributes) : clone($default_attributes);
 
-//    kint($variables['items'][$delta]['attributes']);
-
     // .
     if (!empty($data['items'][$fuid])) {
       $grid_item = $data['items'][$fuid][$delta];
-      $variables['items'][$delta]['attributes']['data-gs-x'] =  $grid_item['x'];
-      $variables['items'][$delta]['attributes']['data-gs-y'] =  $grid_item['y'];
-      $variables['items'][$delta]['attributes']['data-gs-width'] =  $grid_item['width'];
-      $variables['items'][$delta]['attributes']['data-gs-height'] =  $grid_item['height'];
+      $variables['items'][$delta]['attributes']['data-gs-x'] = $grid_item['x'];
+      $variables['items'][$delta]['attributes']['data-gs-y'] = $grid_item['y'];
+      $variables['items'][$delta]['attributes']['data-gs-width'] = $grid_item['width'];
+      $variables['items'][$delta]['attributes']['data-gs-height'] = $grid_item['height'];
     }
 
     $delta++;
   }
+
+  // Sorting items according to Y position.
+  usort($variables['items'], function($a, $b) {
+    $a_y = $a['attributes']->offsetGet('data-gs-y');
+    $b_y = $b['attributes']->offsetGet('data-gs-y');
+    $a_x = $a['attributes']->offsetGet('data-gs-x');
+    $b_x = $b['attributes']->offsetGet('data-gs-x');
+    if ($a_y == $b_y) {
+      return $a_x > $b_x ? 1 : -1;
+    }
+    return $a_y > $b_y ? 1 : -1;
+  });
 }
 
-
+/**
+ * Implements hook_node_insert()
+ *
+ * @param \Drupal\Core\Entity\EntityInterface $entity
+ */
 function paragraphs_gridstack_node_insert(Drupal\Core\Entity\EntityInterface $entity) {
-  if (_paragraphs_gridstack_ckeck_field($entity)) {
-    $storage = \Drupal::service('tempstore.private')->get('paragraphs_gridstack');
-    $storage->delete('grid_items');
+  // Check if we have user session for preventing errors during content migration.
+  if (\Drupal::currentUser()->isAuthenticated()) {
+    // Check if is it paragraph's type field.
+    if (_paragraphs_gridstack_check_field($entity)) {
+      $storage = \Drupal::service('tempstore.private')->get('paragraphs_gridstack');
+      $storage->delete('grid_items');
+    }
   }
 }
 
+/**
+ * Implements hook_node_update()
+ *
+ * @param \Drupal\Core\Entity\EntityInterface $entity
+ */
 function paragraphs_gridstack_node_update(Drupal\Core\Entity\EntityInterface $entity) {
-  if (_paragraphs_gridstack_ckeck_field($entity)) {
-    $storage = \Drupal::service('tempstore.private')->get('paragraphs_gridstack');
-    $storage->delete('grid_items');
+  // Check if we have user session for preventing errors during content migration.
+  if (\Drupal::currentUser()->isAuthenticated()) {
+    // Check if is it paragraph's type field.
+    if (_paragraphs_gridstack_check_field($entity)) {
+      $storage = \Drupal::service('tempstore.private')->get('paragraphs_gridstack');
+      $storage->delete('grid_items');
+    }
   }
 }
 
-function _paragraphs_gridstack_ckeck_field(Drupal\Core\Entity\EntityInterface $entity) {
+function _paragraphs_gridstack_check_field(Drupal\Core\Entity\EntityInterface $entity) {
   $field_existiong = FALSE;
 
   // Find fields which are referencing classy_paragraphs.

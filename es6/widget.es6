@@ -18,8 +18,6 @@
     const href = `${baseUrl}${pathPrefix}grid_update`;
     const post = "grid_items=" + JSON.stringify(jsonData);
 
-    // console.log('JSON.stringify(jsonData)', JSON.stringify(jsonData));
-
     // Send data to drupal side.
     $.ajax({
       url: href,
@@ -29,7 +27,7 @@
       success: function (data) {
       }
     });
-    $('#edit-field-json-wrapper textarea').val(JSON.stringify(jsonData));
+    $('#edit-field-paragraphs-gridstack-json-wrapper textarea').val(JSON.stringify(jsonData));
   }
   
   function _gatherInfo(obj) {
@@ -85,14 +83,49 @@
         options = settings.gridStack.settings;
         options = Object.values(options);
         options.forEach((value) => {
-          $('.grid-stack[fid = ' + value.field_id + ']').gridstack(value);
+          var $grid = $('.grid-stack[fid = ' + value.field_id + ']');
+          $grid.gridstack(value);
+          // @TODO temp solution.
+          $grid.removeClass('width-');
+          $grid.removeClass('width-' + value.width).addClass('width-' + value.width);
         });
       }
+
+      // @TODO need to refactor this.
+      // SHow hide grid.
+      if (!$('#grid-settings').length) {
+        $('.form-item-grid').show();
+      }
+      else {
+        $('.form-item-grid').hide();
+      }
+
+      // Ugly fix due to issues with saving empty node.
+      if ($(context).hasClass('grid-settings-replacement')) {
+        $('.field--widget-paragraphs-gridstack-widget').trigger('change');
+      }
+
+      // Choose element
+      const gridFields = document.querySelectorAll('.field--widget-paragraphs-gridstack-widget');
+      // pass arguments
+      gridFields.forEach((gridHtml) => {
+        let gridItems = gridHtml.querySelectorAll('.grid-stack-item');
+        // Add custom element with value of item height.
+        if (gridItems.length) {
+          gridItems.forEach((item) => {
+            if (!$(item).find('.height-counter').length) {
+              let height = $(item).data('gs-height');
+              height = 'Height: ' + (height * 50) + 'px';
+              $(item).find('.grid-stack-item-content').prepend('<div class="height-counter">' + height + '</div>');
+            }
+          });
+        }
+      });
     }
   };
 
   $(document).ready(() => {
-    let data = $('#edit-field-json-wrapper textarea').val();
+    let data = $('#edit-field-paragraphs-gridstack-json-wrapper textarea').val();
     if (data.length) {
       data = JSON.parse(data);
       let settingsKeys = Object.keys(data.settings);
@@ -101,6 +134,11 @@
       settingsValues.forEach((v, i) => {
         $('.grid-stack[fid = ' + settingsKeys[i] + ']').gridstack(v);
       });
+
+      // Fix for avoiding problems with adding new items after failed validation.
+      if (typeof settings.gridStack == 'undefined') {
+        settings.gridStack = data;
+      }
     }
   });
 
@@ -120,63 +158,53 @@
   // jsonFieldData.fid = fid;
 
 
-  // выбираем целевой элемент
+  // Choose element
   const gridFields = document.querySelectorAll('.field--widget-paragraphs-gridstack-widget');
 
-  // создаём экземпляр MutationObserver
+  // Create instance of MutationObserver
   // Insert/remove dom elements event listener.
-  let observer = new MutationObserver(function(mutations) {
+  let observer = new MutationObserver(function(mutations, observer) {
     mutations.forEach((mutation) => {
-      let gridItems = mutation.target.querySelectorAll('.grid-stack-item.ui-draggable.ui-resizable');
 
-      const uniqueKey = mutation.target.querySelectorAll('.form-item-grid')[0].getAttribute('fid');
-      jsonFieldData.items[uniqueKey] = {};
+      // No need to do any actions on appearing/disappearing ajax throbbers.
+      if (mutation.target.querySelector('.confirm-remove')) {
+        return;
+      }
 
-      _gatherInfo({gridItems, jsonFieldData, uniqueKey});
+      if (mutation.type === 'childList') {
+        if (mutation.target.querySelectorAll('.form-item-grid').length) {
+          let gridItems = mutation.target.querySelectorAll('.grid-stack-item.ui-draggable.ui-resizable');
 
-      // DO SOMETHING ON INSERT/DELETE.
-      gridItems.forEach((itemBu) => {
-        // DO SOMETHING ON INSERT/DELETE.
-      });
+          const uniqueKey = mutation.target.querySelectorAll('.form-item-grid')[0].getAttribute('fid');
+          jsonFieldData.items[uniqueKey] = {};
+
+          _gatherInfo({gridItems, jsonFieldData, uniqueKey});
+        }
+      }
     });
   });
 
-  // конфигурация нашего observer:
-  const config = { attributes: true, childList: true, characterData: true };
+  // configure our observer:
+  const config = { attributes: false, childList: true, characterData: false, subtree: true };
 
-  // передаём в качестве аргументов целевой элемент и его конфигурацию
+  // pass arguments
   gridFields.forEach((gridHtml) => {
     const uniqueKey = gridHtml.querySelectorAll('.form-item-grid')[0].getAttribute('fid');
-    let gridItems = gridHtml.querySelectorAll('.grid-stack-item.ui-draggable.ui-resizable');
+    let gridItems = gridHtml.querySelectorAll('.grid-stack-item');
     jsonFieldData.items[uniqueKey] = [];
 
     // Observe insert/remove events.
     observer.observe(gridHtml, config);
 
-    // Add custom element with value of item height.
-    if (gridItems.length) {
-      gridItems.forEach((item) => {
-        console.log('ADD CUSTOM HEIGHT ITEM', item);
-        let height = $(item).data('gs-height');
-        height = 'Height: ' + (height * 50) + 'px';
-        $(item).prependTo('<div class="height-counter">' + height + '</div>');
-      });
-    }
-
     // Other change events.
     gridHtml.onchange = item => {
+      if ($(item.target).is('.form-select, .form-text, .form-file, .form-textarea, .form-jquery_colorpicker, .form-checkbox, .form-radio')) {
+        return;
+      }
       let gridItems = item.target.querySelectorAll('.grid-stack-item.ui-draggable.ui-resizable');
-
       _gatherInfo({gridItems, jsonFieldData, uniqueKey});
-
-      gridItems.forEach((itemBu) => {
-        // DO THOMETHING ON CHANGE
-      });
     };
   });
-
-
-
 
 })(jQuery, Drupal, drupalSettings);
 

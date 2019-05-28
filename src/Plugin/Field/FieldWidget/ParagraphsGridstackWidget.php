@@ -1,6 +1,8 @@
 <?php
 
+
 namespace Drupal\paragraphs_gridstack\Plugin\Field\FieldWidget;
+
 
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\Random;
@@ -10,6 +12,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\paragraphs\Plugin\Field\FieldWidget\InlineParagraphsWidget;
 use Drupal\paragraphs_gridstack\Services;
 use Drupal\Component\Utility;
+
 
 /**
  * .
@@ -23,26 +26,8 @@ use Drupal\Component\Utility;
  *   }
  * )
  */
+
 class ParagraphsGridstackWidget extends InlineParagraphsWidget implements WidgetInterface {
-
-//  /**
-//   * The database connection.
-//   *
-//   * @var \Drupal\Core\Database\Connection
-//   */
-//  protected $databaseApi;
-//
-//  /**
-//   * Constructs a new CustomService object.
-//   *
-//   * @param \Drupal\Core\Database\Connection $connection
-//   *   A Database connection to use for reading and writing configuration data.
-//   *
-//   */
-//  public function __construct(Connection $connection) {
-//    $this->databaseApi = $connection;
-//  }
-
   /**
    * {@inheritdoc}
    */
@@ -50,16 +35,21 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
     return [
       'always_show_resize_handle' => FALSE,
       'float' => FALSE,
-      'cell_height' => 60,
+      'cell_height' => 50,
       'height' => 0,
-      'vertical_margin' => 20,
+      'vertical_margin' => 0,
       'width' => 12,
     ] + parent::defaultSettings();
   }
 
+
+
   /**
+
    * {@inheritdoc}
+
    */
+
   public function settingsForm(array $form, FormStateInterface $form_state) {
     $element = parent::settingsForm($form, $form_state);
 
@@ -111,6 +101,7 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
     return $element;
   }
 
+
   /**
    * {@inheritdoc}
    */
@@ -128,6 +119,7 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
     return $element;
   }
 
+
   /**
    * {@inheritdoc}
    */
@@ -137,17 +129,9 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
     $buildInfo = $form_state->getBuildInfo();
     $node = $buildInfo['callback_object']->getEntity();
     $fid = $this->fieldDefinition->getUniqueIdentifier();
-//    dsm($node->id(), 'id');
-//    dsm($node->isNew(), 'isNew');
-
-//    if (!$form_state->hasValue('form_key')) {
-//      $random = new Random();
-//      $string = $random->name();
-//      $form_state->setValue('form_key', $string);
-//    }
-
 
     // Create array with grid settings.
+//    $grid_settings = $this->getSettings();
     $grid_settings = [];
     $grid_settings['always_show_resize_handle'] = $this->getSetting('always_show_resize_handle');
     $grid_settings['float'] = $this->getSetting('float');
@@ -157,22 +141,6 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
     $grid_settings['width'] = $this->getSetting('width');
     $grid_settings['field_id'] = $fid;
 
-
-//    $grid_settings = $this->getSettings();
-//    $paragraph_settings = [
-//      'title',
-//      'title_plural',
-//      'edit_mode',
-//      'add_mode',
-//      'form_display_mode',
-//      'default_paragraph_type'
-//    ];
-//    foreach ($grid_settings as $key => $value) {
-//      if (in_array($key, $paragraph_settings)) {
-//
-//      }
-//    }
-
     // Use own theme for widget.
     $elements['#theme'] = 'field_gridstack_value_form';
     $elements['#unified_key'] = $fid;
@@ -180,33 +148,13 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
       $elements['#nid'] = $node->id();
     }
 
-
-//    dsm($this->fieldDefinition->getUniqueIdentifier(), 'FID');
-//    dsm($this->fieldDefinition->getName(), 'FIELD NAME');
-
     $elements['#attached']['library'][] = 'paragraphs_gridstack/paragraphs_gridstack.gridstack';
     $elements['#attached']['library'][] = 'paragraphs_gridstack/paragraphs_gridstack.widget';
 
-
-
-
-
-
-
-
-
-
-
-
     // Add grid comfig form on node add page.
-    if (!$node->id()) {
-      $settings = $this->getSettings();
-
+    if (!$node->id() && !$form_state->has('grid_loaded')) {
       // Transform string values to int.
-      $settings['cell_height'] = intval($settings['cell_height']);
-      $settings['height'] = intval($settings['height']);
-      $settings['vertical_margin'] = intval($settings['vertical_margin']);
-      $settings['width'] = intval($settings['width']);
+      $settings = array_map(function($v) { return is_bool($v) ? $v : (int) $v; }, $this->getSettings());
 
       $form['grid_settings'] = array(
         '#type' => 'fieldset',
@@ -280,24 +228,7 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
       );
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    if (!$form_state->has('grid_loaded') && !$form_state->get('grid_loaded')) {
+    if (!$form_state->has('grid_loaded')) {
       $storage = \Drupal::service('tempstore.private')->get('paragraphs_gridstack');
       // Clear cache.
       if ($storage->get('grid_items')) {
@@ -309,11 +240,10 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
       }
       // On edit page fill up cache from JSON field.
       if ($node->id()) {
-        $data = $node->get('field_json')->getValue();
+        $data = $node->get('field_paragraphs_gridstack_json')->getValue();
         $data = json_decode($data[0]['value'], true);
         $storage->set('grid_items', $data);
       }
-
       $form_state->set('grid_loaded', TRUE);
     }
 
@@ -325,9 +255,11 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
     // Create array with grid settings.
     $values = $form_state->getValues();
     $fid = $values['fid'];
+//    $grid_settings = $form_state->getValues();
+//    $fid =  $grid_settings['fid'];
     $grid_settings = [];
-    $grid_settings['always_show_resize_handle'] = $values['alwaysShowResizeHandle'] ? true : false;
-    $grid_settings['float'] = $values['float'] ? true : false;
+    $grid_settings['always_show_resize_handle'] = !empty($values['alwaysShowResizeHandle']) ? true : false;
+    $grid_settings['float'] = !empty($values['float']) ? true : false;
     $grid_settings['cell_height'] = intval($values['cell_height']);
     $grid_settings['height'] = intval($values['height']);
     $grid_settings['vertical_margin'] = intval($values['vertical_margin']);
@@ -336,12 +268,40 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
 
     $element = [];
     $element['#type'] = 'markup';
-    $element['#prefix'] = '<div class="ajax-new-content">';
+    $element['#prefix'] = '<div class="ajax-new-content grid-settings-replacement">';
     $element['#suffix'] = '</div>';
 
-
     $element['#attached']['drupalSettings']['gridStack']['settings'][$fid] = $grid_settings;
+    // We need this param for avoiding issues during validation.
+    $form_state->set('settings_added', TRUE);
 
     return $element;
   }
+
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function itemAjax(array $form, FormStateInterface $form_state) {
+    $button = $form_state->getTriggeringElement();
+
+    // We have to remove item from json cached data.
+    if ($button['#value'] == 'Confirm removal') {
+      $storage = \Drupal::service('tempstore.private')->get('paragraphs_gridstack');
+      $grid_items = $storage->get('grid_items');
+      $element = NestedArray::getValue($form, array_slice($button['#array_parents'], 0, -4));
+      $uniq_key = $element['#unified_key'];
+      $delta = $button['#delta'];
+
+      // Remove item from array and reset keys.
+      unset($grid_items['items'][$uniq_key][$delta]);
+      $grid_items['items'][$uniq_key] = array_values($grid_items['items'][$uniq_key]);
+
+      $storage->set('grid_items', $grid_items);
+    }
+
+    $element = parent::itemAjax($form, $form_state);
+    return $element;
+  }
 }
+
