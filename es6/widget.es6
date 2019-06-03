@@ -5,13 +5,20 @@
 
 (function ($, Drupal, settings) {
   'use strict';
-  
-  var loaded = false;
-  
+
   /**
    * Helper function.
    *
    * Add data to json field and send to drupal callback.
+   */
+  /**
+   * Helper function.
+   *
+   * Add data to json field and send to drupal callback.
+   *
+   * @param array jsonData
+   *   Information about grid in json format.
+   * @private
    */
   function _saveParagraphPosition(jsonData) {
     const { baseUrl, pathPrefix } = drupalSettings.path;
@@ -29,10 +36,9 @@
     });
     $('#edit-field-paragraphs-gridstack-json-wrapper textarea').val(JSON.stringify(jsonData));
   }
-  
+
   function _gatherInfo(obj) {
     let { gridItems: items, jsonFieldData, uniqueKey } = obj;
-
     items.forEach((item) => {
       let props = item.dataset;
       let obj = {
@@ -72,7 +78,6 @@
    * @type {{}}
    */
 
-
   let options = {};
 
   Drupal.behaviors.gridstackField = {
@@ -85,9 +90,9 @@
         options.forEach((value) => {
           var $grid = $('.grid-stack[fid = ' + value.field_id + ']');
           $grid.gridstack(value);
-          // @TODO temp solution.
-          $grid.removeClass('width-');
-          $grid.removeClass('width-' + value.width).addClass('width-' + value.width);
+          if (value.width !== 'undefined' && !$grid.hasClass('width-' + value.width) ) {
+            $grid.addClass('width-' + value.width);
+          }
         });
       }
 
@@ -142,21 +147,12 @@
     }
   });
 
-
-  const fieldGridstack = document.querySelectorAll('.grid-stack');
-
   let jsonFieldData = {};
-
-  // Fill in JSON field with parameters from grid items.
-  if (fieldGridstack.length) {
-
-  }
 
   // Create obj structure.
   jsonFieldData.items = {};
   jsonFieldData.settings = options;
   // jsonFieldData.fid = fid;
-
 
   // Choose element
   const gridFields = document.querySelectorAll('.field--widget-paragraphs-gridstack-widget');
@@ -207,6 +203,3 @@
   });
 
 })(jQuery, Drupal, drupalSettings);
-
-
-

@@ -15,26 +15,16 @@
  *   - content: The description content of the form element.
  *   - attributes: HTML attributes to apply to the description container.
  * - button: "Add another item" button.
+ * - columns: The digit that display collumn division.
  *
  * @see template_preprocess_field_multiple_value_form()
  */
 #}
 {% if multiple %}
   <div class="js-form-item form-item form-item-grid" fid="{{ fid }}">
-    {#{{ grid_items }}#}
-
-
     {% if title %}
       {{ title }}
     {% endif %}
-
-    {#{% for item in grid_items %}#}
-      {#{{ item }}#}
-    {#{% endfor %}#}
-
-
-
-
     {% if grid_items %}
       <div class="grid-stack width-{{ columns }}" fid="{{ fid }}">
         {% for item in grid_items %}
@@ -44,9 +34,6 @@
     {% else %}
       {{ text }}
     {% endif %}
-
-
-
 
     {% if description.content %}
       <div{{ description.attributes.addClass('description') }} >{{ description.content }}</div>
