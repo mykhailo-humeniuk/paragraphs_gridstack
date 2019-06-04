@@ -6,3 +6,4 @@ use gridstack.js library along with paragraphs.
 INSTALATION
  - create field with machine name field_paragraphs_gridstack_json for storing
  data required for building grid.
+ 

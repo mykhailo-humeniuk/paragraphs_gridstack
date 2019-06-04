@@ -1,21 +1,21 @@
 <?php
 
-
 namespace Drupal\paragraphs_gridstack\Plugin\Field\FieldWidget;
 
-
 use Drupal\Component\Utility\NestedArray;
-use Drupal\Component\Utility\Random;
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\WidgetInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\TempStore\PrivateTempStoreFactory;
 use Drupal\paragraphs\Plugin\Field\FieldWidget\InlineParagraphsWidget;
 use Drupal\paragraphs_gridstack\Services;
-use Drupal\Component\Utility;
-
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Component\Serialization\Json;
 
 /**
- * .
+ * Plugin implementation of the 'entity reference rendered entity' widget.
  *
  * @FieldWidget(
  *   id = "paragraphs_gridstack_widget",
@@ -26,8 +26,37 @@ use Drupal\Component\Utility;
  *   }
  * )
  */
+class ParagraphsGridstackWidget extends InlineParagraphsWidget implements WidgetInterface, ContainerFactoryPluginInterface {
 
-class ParagraphsGridstackWidget extends InlineParagraphsWidget implements WidgetInterface {
+  /**
+   * Stores the tempstore factory.
+   *
+   * @var \Drupal\Core\TempStore\PrivateTempStoreFactory
+   */
+  protected $tempStoreFactory;
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __construct($plugin_id, $plugin_definition, FieldDefinitionInterface $field_definition, array $settings, array $third_party_settings, PrivateTempStoreFactory $temp_store_factory) {
+    parent::__construct($plugin_id, $plugin_definition, $field_definition, $settings, $third_party_settings);
+    $this->tempStoreFactory = $temp_store_factory;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
+    return new static(
+      $plugin_id,
+      $plugin_definition,
+      $configuration['field_definition'],
+      $configuration['settings'],
+      $configuration['third_party_settings'],
+      $container->get('tempstore.private')
+    );
+  }
+
   /**
    * {@inheritdoc}
    */
@@ -42,65 +71,59 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
     ] + parent::defaultSettings();
   }
 
-
-
   /**
-
    * {@inheritdoc}
-
    */
-
   public function settingsForm(array $form, FormStateInterface $form_state) {
     $element = parent::settingsForm($form, $form_state);
 
-    $element['always_show_resize_handle'] = array(
+    $element['always_show_resize_handle'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Always show resize handle'),
       '#default_value' => $this->getSetting('always_show_resize_handle'),
-      '#description' => $this->t('If checked the resizing handles are shown even if the user is not hovering over the widget '),
-    );
-    $element['float'] = array(
+      '#description' => $this->t('If checked the resizing handles are shown even if the user is not hovering over the widget'),
+    ];
+    $element['float'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Float'),
       '#default_value' => $this->getSetting('float'),
       '#description' => $this->t('Enable floating widgets'),
-    );
-    $element['cell_height'] = array(
+    ];
+    $element['cell_height'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Cell height'),
       '#default_value' => $this->getSetting('cell_height'),
       '#size' => 60,
       '#maxlength' => 128,
       '#description' => $this->t('One cell height in pixels'),
-    );
-    $element['height'] = array(
+    ];
+    $element['height'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Height'),
       '#default_value' => $this->getSetting('height'),
       '#size' => 60,
       '#maxlength' => 128,
       '#description' => $this->t('Maximum rows amount. Default is 0 which means no maximum rows'),
-    );
-    $element['vertical_margin'] = array(
+    ];
+    $element['vertical_margin'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Vertical margin'),
       '#default_value' => $this->getSetting('vertical_margin'),
       '#size' => 60,
       '#maxlength' => 128,
       '#description' => $this->t('Vertical gap size in pixels'),
-    );
-    $element['width'] = array(
+    ];
+    $element['width'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Width'),
       '#default_value' => $this->getSetting('width'),
       '#size' => 60,
       '#maxlength' => 128,
       '#description' => $this->t('Amount of columns'),
-    );
+    ];
 
     return $element;
   }
-
 
   /**
    * {@inheritdoc}
@@ -110,7 +133,6 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
     return $summary;
   }
 
-
   /**
    * {@inheritdoc}
    */
@@ -118,7 +140,6 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
     $element = parent::formElement($items, $delta, $element, $form, $form_state);
     return $element;
   }
-
 
   /**
    * {@inheritdoc}
@@ -131,7 +152,6 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
     $fid = $this->fieldDefinition->getUniqueIdentifier();
 
     // Create array with grid settings.
-//    $grid_settings = $this->getSettings();
     $grid_settings = [];
     $grid_settings['always_show_resize_handle'] = $this->getSetting('always_show_resize_handle');
     $grid_settings['float'] = $this->getSetting('float');
@@ -154,82 +174,83 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
     // Add grid comfig form on node add page.
     if (!$node->id() && !$form_state->has('grid_loaded')) {
       // Transform string values to int.
-      $settings = array_map(function($v) { return is_bool($v) ? $v : (int) $v; }, $this->getSettings());
+      $settings = array_map(function ($v) {
+        return is_bool($v) ? $v : (int) $v;
+      }, $this->getSettings());
 
-      $form['grid_settings'] = array(
+      $form['grid_settings'] = [
         '#type' => 'fieldset',
-        '#title' => t('Grid settings'),
-//        '#weight' => 0,
+        '#title' => $this->t('Grid settings'),
         '#collapsible' => FALSE,
         '#collapsed' => FALSE,
         '#suffix' => '</div>',
-        '#prefix' => '<div id="grid-settings">'
-      );
-      $form['grid_settings']['always_show_resize_handle'] = array(
+        '#prefix' => '<div id="grid-settings">',
+      ];
+      $form['grid_settings']['always_show_resize_handle'] = [
         '#type' => 'checkbox',
-        '#title' => t('Always show resize handle'),
+        '#title' => $this->t('Always show resize handle'),
         '#default_value' => $settings['always_show_resize_handle'],
-        '#description' => t('If checked the resizing handles are shown even if the user is not hovering over the widget '),
-      );
-      $form['grid_settings']['float'] = array(
+        '#description' => $this->t('If checked the resizing handles are shown even if the user is not hovering over the widget'),
+      ];
+      $form['grid_settings']['float'] = [
         '#type' => 'checkbox',
-        '#title' => t('Float'),
+        '#title' => $this->t('Float'),
         '#default_value' => $settings['float'],
-        '#description' => t('Enable floating widgets'),
-      );
-      $form['grid_settings']['cell_height'] = array(
+        '#description' => $this->t('Enable floating widgets'),
+      ];
+      $form['grid_settings']['cell_height'] = [
         '#type' => 'textfield',
-        '#title' => t('Cell height'),
+        '#title' => $this->t('Cell height'),
         '#default_value' => $settings['cell_height'],
         '#size' => 60,
         '#maxlength' => 128,
-        '#description' => t('One cell height in pixels'),
-      );
-      $form['grid_settings']['height'] = array(
+        '#description' => $this->t('One cell height in pixels'),
+      ];
+      $form['grid_settings']['height'] = [
         '#type' => 'textfield',
-        '#title' => t('Height'),
+        '#title' => $this->t('Height'),
         '#default_value' => $settings['height'],
         '#size' => 60,
         '#maxlength' => 128,
-        '#description' => t('Maximum rows amount. Default is 0 which means no maximum rows'),
-      );
-      $form['grid_settings']['vertical_margin'] = array(
+        '#description' => $this->t('Maximum rows amount. Default is 0 which means no maximum rows'),
+      ];
+      $form['grid_settings']['vertical_margin'] = [
         '#type' => 'textfield',
-        '#title' => t('Vertical margin'),
+        '#title' => $this->t('Vertical margin'),
         '#default_value' => $settings['vertical_margin'],
         '#size' => 60,
         '#maxlength' => 128,
-        '#description' => t('Vertical gap size in pixels'),
-      );
-      $form['grid_settings']['width'] = array(
+        '#description' => $this->t('Vertical gap size in pixels'),
+      ];
+      $form['grid_settings']['width'] = [
         '#type' => 'textfield',
-        '#title' => t('Width'),
+        '#title' => $this->t('Width'),
         '#default_value' => $settings['width'],
         '#size' => 60,
         '#maxlength' => 128,
-        '#description' => t('Amount of columns'),
-      );
-      $form['grid_settings']['fid'] = array(
+        '#description' => $this->t('Amount of columns'),
+      ];
+      $form['grid_settings']['fid'] = [
         '#type' => 'hidden',
         '#value' => $fid,
-      );
-      $form['grid_settings']['actions']['save'] = array(
+      ];
+      $form['grid_settings']['actions']['save'] = [
         '#type' => 'button',
-        '#value' => t('Save grid'),
+        '#value' => $this->t('Save grid'),
         '#name' => 'grid',
-        '#validate' => array(),
-        '#limit_validation_errors' => array(),
-        '#ajax' => array(
-          'callback' => array(get_class($this), 'itemGridAjax'),
+        '#validate' => [],
+        '#limit_validation_errors' => [],
+        '#ajax' => [
+          'callback' => [get_class($this), 'itemGridAjax'],
           'wrapper' => 'grid-settings',
           'effect' => 'fade',
           'method' => 'replace',
-        ),
-      );
+        ],
+      ];
     }
 
     if (!$form_state->has('grid_loaded')) {
-      $storage = \Drupal::service('tempstore.private')->get('paragraphs_gridstack');
+      $storage = $this->tempStoreFactory->get('paragraphs_gridstack');
       // Clear cache.
       if ($storage->get('grid_items')) {
         $storage->delete('grid_items');
@@ -241,7 +262,7 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
       // On edit page fill up cache from JSON field.
       if ($node->id()) {
         $data = $node->get('field_paragraphs_gridstack_json')->getValue();
-        $data = json_decode($data[0]['value'], true);
+        $data = JSON::decode($data[0]['value']);
         $storage->set('grid_items', $data);
       }
       $form_state->set('grid_loaded', TRUE);
@@ -250,16 +271,17 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
     return $elements;
   }
 
-
+  /**
+   * {@inheritdoc}
+   */
   public static function itemGridAjax(array $form, FormStateInterface $form_state) {
     // Create array with grid settings.
     $values = $form_state->getValues();
     $fid = $values['fid'];
-//    $grid_settings = $form_state->getValues();
-//    $fid =  $grid_settings['fid'];
+
     $grid_settings = [];
-    $grid_settings['always_show_resize_handle'] = !empty($values['alwaysShowResizeHandle']) ? true : false;
-    $grid_settings['float'] = !empty($values['float']) ? true : false;
+    $grid_settings['always_show_resize_handle'] = !empty($values['alwaysShowResizeHandle']) ? TRUE : FALSE;
+    $grid_settings['float'] = !empty($values['float']) ? TRUE : FALSE;
     $grid_settings['cell_height'] = intval($values['cell_height']);
     $grid_settings['height'] = intval($values['height']);
     $grid_settings['vertical_margin'] = intval($values['vertical_margin']);
@@ -278,7 +300,6 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
     return $element;
   }
 
-
   /**
    * {@inheritdoc}
    */
@@ -286,8 +307,9 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
     $button = $form_state->getTriggeringElement();
 
     // We have to remove item from json cached data.
-    if ($button['#value'] == 'Confirm removal') {
-      $storage = \Drupal::service('tempstore.private')->get('paragraphs_gridstack');
+    if ($button['#value'] == t('Confirm removal')) {
+      $storage = \Drupal::service('tempstore.private')
+        ->get('paragraphs_gridstack');
       $grid_items = $storage->get('grid_items');
       $element = NestedArray::getValue($form, array_slice($button['#array_parents'], 0, -4));
       $uniq_key = $element['#unified_key'];
@@ -300,8 +322,7 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
       $storage->set('grid_items', $grid_items);
     }
 
-    $element = parent::itemAjax($form, $form_state);
-    return $element;
+    return parent::itemAjax($form, $form_state);
   }
-}
 
+}

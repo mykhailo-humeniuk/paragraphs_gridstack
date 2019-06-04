@@ -1,15 +1,7 @@
 name: Paragraphs grid
-
 type: module
-
 description: 'Provides custom widget and formatter for field paragraphs with grid layout.'
-
 core: 8.x
-
 package: Paragraphs
-
-
-
 dependencies:
-
   - paragraphs:paragraphs
