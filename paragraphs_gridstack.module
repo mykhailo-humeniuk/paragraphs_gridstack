@@ -61,22 +61,17 @@ function template_preprocess_field_gridstack_value_form(array &$variables) {
 
     $variables['button'] = [];
     foreach (Element::children($element) as $key) {
-      switch ($key) {
-        case 'add_more':
-          $variables['button'] = &$element[$key];
-          break;
-
-        case 'title':
-          $variables['title'] = &$element[$key];
-          break;
-
-        case 'text':
-          $variables['text'] = &$element[$key];
-          break;
-
-        default:
-          $items[] = &$element[$key];
-          break;
+      if ($key === 'add_more') {
+        $variables['button'] = &$element[$key];
+      }
+      elseif ($key === 'title') {
+        $variables['title'] = &$element[$key];
+      }
+      elseif ($key === 'text') {
+        $variables['text'] = &$element[$key];
+      }
+      else {
+        $items[] = &$element[$key];
       }
     }
     usort($items, '_field_multiple_value_form_sort_helper');

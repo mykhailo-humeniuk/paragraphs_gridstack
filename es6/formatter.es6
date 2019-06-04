@@ -18,15 +18,32 @@
    * Implements grid and backbone collections on node edit page.
    */
   $(document).ready(() => {
-    let jsonData = $('.field--name-field-paragraphs-gridstack-json');
+    let data;
+    let viewGridContent;
+    let json_field = $('.field--name-field-paragraphs-gridstack-json');
 
-    if (jsonData.length) {
-      jsonData.each(function () {
-        let $data = $(this).text();
-        let viewGridContent = $(this).parent().find('.grid-stack');
-        gridSettings($data, viewGridContent);
+    if (json_field.length === 1) {
+      data = json_field.text();
+      viewGridContent = json_field.closest('#site').find('.grid-stack');
+    }
+    else if (json_field.length > 1) {
+      json_field.each(function () {
+        data = $(this).text();
+        viewGridContent = $(this).parent().find('.grid-stack');
       });
     }
+
+    gridSettings(data, viewGridContent);
+
+    // let jsonData = $('.field--name-field-paragraphs-gridstack-json');
+    //
+    // if (jsonData.length) {
+    //   jsonData.each(function () {
+    //     let $data = $(this).text();
+    //     let viewGridContent = $(this).parent().find('.grid-stack');
+    //     gridSettings($data, viewGridContent);
+    //   });
+    // }
   });
 
   /**

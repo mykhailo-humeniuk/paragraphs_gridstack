@@ -276,7 +276,7 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
    */
   public static function itemGridAjax(array $form, FormStateInterface $form_state) {
     // Create array with grid settings.
-    $values = $form_state->getValues();
+    $values = $form_state->getUserInput();
     $fid = $values['fid'];
 
     $grid_settings = [];
