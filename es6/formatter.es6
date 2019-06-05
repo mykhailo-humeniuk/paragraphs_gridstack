@@ -34,16 +34,6 @@
     }
 
     gridSettings(data, viewGridContent);
-
-    // let jsonData = $('.field--name-field-paragraphs-gridstack-json');
-    //
-    // if (jsonData.length) {
-    //   jsonData.each(function () {
-    //     let $data = $(this).text();
-    //     let viewGridContent = $(this).parent().find('.grid-stack');
-    //     gridSettings($data, viewGridContent);
-    //   });
-    // }
   });
 
   /**
