@@ -51,16 +51,22 @@
     label_display == 'visually_hidden' ? 'visually-hidden',
 ]
 %}
+{%
+    set grid_wrapper_classes = [
+    'grid-stack',
+   'paragraphs-items-field-grid',
+]
+%}
 
 {% if label_hidden %}
     {% if multiple %}
-        <div class="grid-stack paragraphs-items-field-grid width-{{ columns }}">
+        <div {{ grid_wrapper.addClass(grid_wrapper_classes) }}>
             {% for item in items %}
                 <div{{ item.attributes.addClass('grid-stack-item') }}>{{ item.content }}</div>
             {% endfor %}
         </div>
     {% else %}
-        <div class="grid-stack paragraphs-items-field-grid width-{{ columns }}">
+        <div {{ grid_wrapper.addClass(grid_wrapper_classes) }}>
             {% for item in items %}
                 <div{{ attributes.addClass(classes, 'grid-stack-item') }}>{{ item.content }}</div>
             {% endfor %}
@@ -70,7 +76,7 @@
     <div{{ attributes.addClass(classes) }}>
         <div{{ title_attributes.addClass(title_classes) }}>{{ label }}</div>
         {% if multiple %}
-        <div class="grid-stack paragraphs-items-field-grid width-{{ columns }}">
+        <div {{ grid_wrapper.addClass(grid_wrapper_classes) }}>
             {% endif %}
             {% for item in items %}
                 <div{{ item.attributes.addClass('grid-stack-item') }}>{{ item.content }}</div>

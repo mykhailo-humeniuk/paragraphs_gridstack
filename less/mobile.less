@@ -1,0 +1,24 @@
+.grid-stack {
+  display: block;
+
+  .grid-stack-item {
+    position: static;
+    width: 100%;
+    display: block;
+  }
+
+  @media (max-width: 768px) {
+    display: inline-block;
+    .grid-stack-item {
+      position: inherit;
+      width: inherit;
+      display: inherit;
+      grid-row-start: unset !important;
+      grid-row-end: unset !important;
+      grid-column-start: unset !important;
+      grid-column-end: unset !important;
+      float: left;
+      clear: both;
+    }
+  }
+}

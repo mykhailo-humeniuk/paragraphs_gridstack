@@ -64,7 +64,9 @@
       // Update custom element with value of item height.
       let height = props.gsHeight;
       let $heightContainer = $(item).find('.height-counter');
-      height = 'Height: ' + (height * 50) + 'px';
+      let cell_height = settings.gridStack.settings[uniqueKey].cell_height;
+      let verticalMargin =  settings.gridStack.settings[uniqueKey].verticalMargin;
+      height = 'Height: ' + (parseInt(height * cell_height) + parseInt(verticalMargin * (height - 1))) + 'px';
       $heightContainer.text(height);
     });
 
@@ -113,14 +115,14 @@
       // Choose element
       const gridFields = document.querySelectorAll('.field--widget-paragraphs-gridstack-widget');
       // pass arguments
-      gridFields.forEach((gridHtml) => {
+      gridFields.forEach((gridHtml, key) => {
         let gridItems = gridHtml.querySelectorAll('.grid-stack-item');
         // Add custom element with value of item height.
         if (gridItems.length) {
           gridItems.forEach((item) => {
             if (!$(item).find('.height-counter').length) {
               let height = $(item).data('gs-height');
-              height = 'Height: ' + (height * 50) + 'px';
+              height = 'Height: ' + (parseInt(height * options[key].cell_height) + parseInt(options[key].verticalMargin * (height - 1))) + 'px';
               $(item).find('.grid-stack-item-content').prepend('<div class="height-counter">' + height + '</div>');
             }
           });

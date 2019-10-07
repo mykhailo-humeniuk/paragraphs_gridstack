@@ -173,6 +173,10 @@ function template_preprocess_paragraphs_gridstack_field(&$variables) {
     $variables['attributes'] = NestedArray::mergeDeep($variables['attributes'], (array) $element['#items'][0]->_attributes);
   }
 
+  $width_class = 'width-' . $data['settings'][$fuid]['width'];
+  $variables['grid_wrapper'] = empty($variables['grid_wrapper']) ?
+    new Attribute(['class' => $width_class]) : $variables['grid_wrapper']->addClass($width_class);
+
   // We want other preprocess functions and the theme implementation to have
   // fast access to the field item render arrays. The item render array keys
   // (deltas) should always be numerically indexed starting from 0, and looping
