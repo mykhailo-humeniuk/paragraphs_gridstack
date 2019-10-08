@@ -8,7 +8,7 @@ use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\WidgetInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\TempStore\PrivateTempStoreFactory;
-use Drupal\paragraphs\Plugin\Field\FieldWidget\InlineParagraphsWidget;
+use Drupal\paragraphs\Plugin\Field\FieldWidget\ParagraphsWidget;
 use Drupal\paragraphs_gridstack\Services;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
@@ -26,7 +26,7 @@ use Drupal\Component\Serialization\Json;
  *   }
  * )
  */
-class ParagraphsGridstackWidget extends InlineParagraphsWidget implements WidgetInterface, ContainerFactoryPluginInterface {
+class ParagraphsGridstackWidget extends ParagraphsWidget implements WidgetInterface, ContainerFactoryPluginInterface {
 
   /**
    * Stores the tempstore factory.
@@ -66,7 +66,9 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
       'float' => FALSE,
       'cell_height' => 50,
       'height' => 0,
+      'auto_height' => FALSE,
       'vertical_margin' => 0,
+      'horizontal_margin' => 0,
       'width' => 12,
     ] + parent::defaultSettings();
   }
@@ -97,6 +99,12 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
       '#maxlength' => 128,
       '#description' => $this->t('One cell height in pixels'),
     ];
+    $element['auto_height'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Auto height'),
+      '#default_value' => $this->getSetting('auto_height'),
+      '#description' => $this->t('Enable option auto height'),
+    ];
     $element['height'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Height'),
@@ -112,6 +120,14 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
       '#size' => 60,
       '#maxlength' => 128,
       '#description' => $this->t('Vertical gap size in pixels'),
+    ];
+    $element['horizontal_margin'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Horizontal margin'),
+      '#default_value' => $this->getSetting('horizontal_margin'),
+      '#size' => 60,
+      '#maxlength' => 128,
+      '#description' => $this->t('Horizontal gap size in pixels'),
     ];
     $element['width'] = [
       '#type' => 'textfield',
@@ -156,8 +172,10 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
     $grid_settings['always_show_resize_handle'] = $this->getSetting('always_show_resize_handle');
     $grid_settings['float'] = $this->getSetting('float');
     $grid_settings['cell_height'] = $this->getSetting('cell_height');
+    $grid_settings['auto_height'] = $this->getSetting('auto_height');
     $grid_settings['height'] = $this->getSetting('height');
     $grid_settings['vertical_margin'] = $this->getSetting('vertical_margin');
+    $grid_settings['horizontal_margin'] = $this->getSetting('horizontal_margin');
     $grid_settings['width'] = $this->getSetting('width');
     $grid_settings['field_id'] = $fid;
 
@@ -198,6 +216,12 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
         '#default_value' => $settings['float'],
         '#description' => $this->t('Enable floating widgets'),
       ];
+      $form['grid_settings']['auto_height'] = [
+        '#type' => 'checkbox',
+        '#title' => $this->t('Auto height'),
+        '#default_value' => $settings['auto_height'],
+        '#description' => $this->t('Enable auto height'),
+      ];
       $form['grid_settings']['cell_height'] = [
         '#type' => 'textfield',
         '#title' => $this->t('Cell height'),
@@ -221,6 +245,14 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
         '#size' => 60,
         '#maxlength' => 128,
         '#description' => $this->t('Vertical gap size in pixels'),
+      ];
+      $form['grid_settings']['horizontal_margin'] = [
+        '#type' => 'textfield',
+        '#title' => $this->t('Horizontal margin'),
+        '#default_value' => $settings['horizontal_margin'],
+        '#size' => 60,
+        '#maxlength' => 128,
+        '#description' => $this->t('Horizontal gap size in pixels'),
       ];
       $form['grid_settings']['width'] = [
         '#type' => 'textfield',
@@ -282,9 +314,11 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
     $grid_settings = [];
     $grid_settings['always_show_resize_handle'] = !empty($values['alwaysShowResizeHandle']) ? TRUE : FALSE;
     $grid_settings['float'] = !empty($values['float']) ? TRUE : FALSE;
+    $grid_settings['auto_height'] = !empty($values['auto_height']) ? TRUE : FALSE;
     $grid_settings['cell_height'] = intval($values['cell_height']);
     $grid_settings['height'] = intval($values['height']);
     $grid_settings['vertical_margin'] = intval($values['vertical_margin']);
+    $grid_settings['horizontal_margin'] = intval($values['horizontal_margin']);
     $grid_settings['width'] = intval($values['width']);
     $grid_settings['field_id'] = $fid;
 
@@ -307,7 +341,7 @@ class ParagraphsGridstackWidget extends InlineParagraphsWidget implements Widget
     $button = $form_state->getTriggeringElement();
 
     // We have to remove item from json cached data.
-    if ($button['#value'] == t('Confirm removal')) {
+    if ($button['#value'] == 'Confirm removal') {
       $storage = \Drupal::service('tempstore.private')
         ->get('paragraphs_gridstack');
       $grid_items = $storage->get('grid_items');

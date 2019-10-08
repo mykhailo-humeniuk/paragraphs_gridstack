@@ -23,7 +23,7 @@ paragraphs_gridstack.widget:
     theme:
       css/widget.min.css: {}
   dependencies:
-  - paragraphs_gridstack/paragraphs_gridstack.cols
+#  - paragraphs_gridstack/paragraphs_gridstack.cols
   - core/jquery
   - core/jquery.once
   - core/drupal
@@ -34,7 +34,6 @@ paragraphs_gridstack.formatter:
     js/formatter.min.js: {}
   css:
     theme:
-      //cdnjs.cloudflare.com/ajax/libs/gridstack.js/0.4.0/gridstack.min.css: { type: external, minified: true }
       css/formatter.min.css: {}
   dependencies:
   - paragraphs_gridstack/paragraphs_gridstack.cols
@@ -58,3 +57,5 @@ paragraphs_gridstack.cols:
       css/col-10.min.css: {}
       css/col-11.min.css: {}
       css/col-12.min.css: {}
+      css/col-20.min.css: {}
+      css/mobile.min.css: {}

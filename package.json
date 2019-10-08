@@ -1,0 +1,33 @@
+{
+  "name": "paragraphs_gridstack",
+  "version": "1.0.0",
+  "description": "This module implements custom widget for Paragraphs field which adds possibility to use gridstack.js library along with paragraphs.",
+  "main": "gulpfile.js",
+  "scripts": {
+    "gulp": "gulp build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Uolt/paragraphs_gridstack.git"
+  },
+  "author": "Uolt",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Uolt/paragraphs_gridstack/issues"
+  },
+  "homepage": "https://github.com/Uolt/paragraphs_gridstack#readme",
+  "dependencies": {
+    "babel-core": "^6.26.0",
+    "browserify": "^16.3.0",
+    "event-stream": "^4.0.1",
+    "gulp": "^3.9.1",
+    "gulp-less": "^4.0.1",
+    "gulp-rename": "^1.4.0",
+    "gulp-sourcemaps": "^2.6.5",
+    "gulp-uglify": "^3.0.2",
+    "less-plugin-autoprefix": "^2.0.0",
+    "less-plugin-clean-css": "^1.5.1",
+    "vinyl-buffer": "^1.0.1",
+    "vinyl-source-stream": "^2.0.0"
+  }
+}

@@ -1,9 +1,19 @@
 @media (min-width: 769px) {
   .grid-stack {
-    &.width-11 {
+    &.width-20 {
       display: grid;
-      grid-template-columns: repeat(11, 1fr);
+      grid-template-columns: repeat(20, 1fr);
       grid-auto-rows: 50px;
+
+      .grid-stack-item[data-gs-x="19"] { grid-column-start: 20;}
+      .grid-stack-item[data-gs-x="18"] { grid-column-start: 19;}
+      .grid-stack-item[data-gs-x="17"] { grid-column-start: 18;}
+      .grid-stack-item[data-gs-x="16"] { grid-column-start: 17;}
+      .grid-stack-item[data-gs-x="15"] { grid-column-start: 16;}
+      .grid-stack-item[data-gs-x="14"] { grid-column-start: 15;}
+      .grid-stack-item[data-gs-x="13"] { grid-column-start: 14;}
+      .grid-stack-item[data-gs-x="12"] { grid-column-start: 13;}
+      .grid-stack-item[data-gs-x="11"] { grid-column-start: 12;}
       .grid-stack-item[data-gs-x="10"] { grid-column-start: 11;}
       .grid-stack-item[data-gs-x="9"] { grid-column-start: 10;}
       .grid-stack-item[data-gs-x="8"] { grid-column-start: 9;}
@@ -16,6 +26,16 @@
       .grid-stack-item[data-gs-x="1"] { grid-column-start: 2;}
       .grid-stack-item[data-gs-x="0"] { grid-column-start: 1;}
 
+
+      .grid-stack-item[data-gs-width="20"] { grid-column-end: span 20;}
+      .grid-stack-item[data-gs-width="19"] { grid-column-end: span 19;}
+      .grid-stack-item[data-gs-width="18"] { grid-column-end: span 18;}
+      .grid-stack-item[data-gs-width="17"] { grid-column-end: span 17;}
+      .grid-stack-item[data-gs-width="16"] { grid-column-end: span 16;}
+      .grid-stack-item[data-gs-width="15"] { grid-column-end: span 15;}
+      .grid-stack-item[data-gs-width="14"] { grid-column-end: span 14;}
+      .grid-stack-item[data-gs-width="13"] { grid-column-end: span 13;}
+      .grid-stack-item[data-gs-width="12"] { grid-column-end: span 12;}
       .grid-stack-item[data-gs-width="11"] { grid-column-end: span 11;}
       .grid-stack-item[data-gs-width="10"] { grid-column-end: span 10;}
       .grid-stack-item[data-gs-width="9"] { grid-column-end: span 9;}
