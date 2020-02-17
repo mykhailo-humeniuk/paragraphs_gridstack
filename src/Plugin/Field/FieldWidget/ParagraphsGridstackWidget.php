@@ -62,15 +62,15 @@ class ParagraphsGridstackWidget extends ParagraphsWidget implements WidgetInterf
    */
   public static function defaultSettings() {
     return [
-      'always_show_resize_handle' => FALSE,
-      'float' => FALSE,
-      'cell_height' => 50,
-      'height' => 0,
-      'auto_height' => FALSE,
-      'vertical_margin' => 0,
-      'horizontal_margin' => 0,
-      'width' => 12,
-    ] + parent::defaultSettings();
+        'always_show_resize_handle' => FALSE,
+        'float' => FALSE,
+        'cell_height' => 50,
+        'height' => 0,
+        'auto_height' => FALSE,
+        'vertical_margin' => 0,
+        'horizontal_margin' => 0,
+        'width' => 12,
+      ] + parent::defaultSettings();
   }
 
   /**
