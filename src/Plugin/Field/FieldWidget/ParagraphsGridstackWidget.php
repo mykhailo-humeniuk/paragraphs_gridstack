@@ -154,6 +154,9 @@ class ParagraphsGridstackWidget extends ParagraphsWidget implements WidgetInterf
    */
   public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, FormStateInterface $form_state) {
     $element = parent::formElement($items, $delta, $element, $form, $form_state);
+    if (isset($element['info'])) {
+      $element['info']['#weight'] = -10;
+    }
     return $element;
   }
 
